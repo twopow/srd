@@ -13,6 +13,19 @@ import (
 	"srd/internal/config"
 )
 
+var (
+	DefaultResolver ResolverProvider
+)
+
+type ResolverProvider interface {
+	Resolve(hostname string) (RR, error)
+}
+
+type Resolver struct {
+	cache cacheM.CacheProvider
+	cfg   config.ResolverConfig
+}
+
 // RR is a Redirect Record
 type RR struct {
 	Hostname string
@@ -20,23 +33,20 @@ type RR struct {
 	NotFound bool
 }
 
-var (
-	cfg   config.ResolverConfig
-	cache *cacheM.Cache
-)
-
-func Init(_cfg config.ResolverConfig, _cache *cacheM.Cache) {
-	cfg = _cfg
-	cache = _cache
+func Init(_cfg config.ResolverConfig, _cache cacheM.CacheProvider) {
+	DefaultResolver = &Resolver{
+		cache: _cache,
+		cfg:   _cfg,
+	}
 }
 
-func Resolve(hostname string) (record RR, err error) {
+func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	stime := time.Now()
 	l := log.With().
 		Str("hostname", hostname).
 		Logger()
 
-	if cached, ok := getCached(&l, hostname); ok {
+	if cached, ok := r.getCached(&l, hostname); ok {
 		l.Info().
 			Str("to", cached.To).
 			Int64("elapsed", time.Since(stime).Milliseconds()).
@@ -45,7 +55,7 @@ func Resolve(hostname string) (record RR, err error) {
 		return cached, nil
 	}
 
-	record, err = doResolve(&l, hostname)
+	record, err = r.doResolve(&l, hostname)
 
 	if err != nil {
 		return record, err
@@ -56,16 +66,16 @@ func Resolve(hostname string) (record RR, err error) {
 		Int64("elapsed", time.Since(stime).Milliseconds()).
 		Msg("resolved host")
 
-	cache.Set(hostname, record)
+	r.cache.Set(hostname, record)
 
 	return record, nil
 }
 
-func doResolve(l *zerolog.Logger, hostname string) (record RR, err error) {
+func (r *Resolver) doResolve(l *zerolog.Logger, hostname string) (record RR, err error) {
 	l.Info().Msg("resolving hostname")
 
 	record.NotFound = true
-	txtRecords, err := resolveTXT(hostname)
+	txtRecords, err := r.resolveTXT(hostname)
 
 	if err != nil {
 		l.Error().Err(err).Msg("failed to resolve host")
@@ -77,7 +87,7 @@ func doResolve(l *zerolog.Logger, hostname string) (record RR, err error) {
 		return record, nil
 	}
 
-	record, err = parseRecord(hostname, txtRecords[0])
+	record, err = r.parseRecord(hostname, txtRecords[0])
 	if err != nil {
 		l.Error().Err(err).Msg("failed to parse record")
 		return record, err
@@ -86,7 +96,7 @@ func doResolve(l *zerolog.Logger, hostname string) (record RR, err error) {
 	return record, nil
 }
 
-func parseRecord(hostname string, record string) (RR, error) {
+func (r *Resolver) parseRecord(hostname string, record string) (RR, error) {
 	parts := strings.Split(record, "=")
 
 	if len(parts) != 2 || parts[0] != "to" {
@@ -102,8 +112,8 @@ func parseRecord(hostname string, record string) (RR, error) {
 
 // resolveTXT takes a hostname with prefix and returns its TXT records.
 // Returns an error if the lookup fails
-func resolveTXT(hostname string) ([]string, error) {
-	hostname = fmt.Sprintf("%s.%s", cfg.RecordPrefix, hostname)
+func (r *Resolver) resolveTXT(hostname string) ([]string, error) {
+	hostname = fmt.Sprintf("%s.%s", r.cfg.RecordPrefix, hostname)
 
 	records, err := net.LookupTXT(hostname)
 
@@ -118,8 +128,8 @@ func resolveTXT(hostname string) ([]string, error) {
 	return records, nil
 }
 
-func getCached(l *zerolog.Logger, hostname string) (rr RR, ok bool) {
-	cached, ok := cache.Get(hostname)
+func (r *Resolver) getCached(l *zerolog.Logger, hostname string) (rr RR, ok bool) {
+	cached, ok := r.cache.Get(hostname)
 
 	if !ok {
 		return rr, false

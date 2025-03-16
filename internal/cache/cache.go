@@ -9,6 +9,12 @@ import (
 	"srd/internal/config"
 )
 
+type CacheProvider interface {
+	Get(key string) (interface{}, bool)
+	Set(key string, value interface{})
+	Cleanup()
+}
+
 type item struct {
 	value      interface{}
 	expiration time.Time
@@ -21,14 +27,14 @@ type Cache struct {
 }
 
 // New creates a new Cache instance
-func New(cfg config.CacheConfig) *Cache {
+func New(cfg config.CacheConfig) CacheProvider {
 	c := &Cache{
 		items:  make(map[string]item),
 		config: cfg,
 	}
 
 	// Start cleanup goroutine
-	go c.cleanup()
+	go c.cleanupTimer()
 
 	return c
 }
@@ -67,24 +73,29 @@ func (c *Cache) Set(key string, value interface{}) {
 }
 
 // cleanup periodically removes expired items from the cache
-func (c *Cache) cleanup() {
+func (c *Cache) cleanupTimer() {
 	ticker := time.NewTicker(c.config.CleanupInterval)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		deleted := 0
+		c.Cleanup()
+	}
+}
 
-		c.mu.Lock()
-		for key, item := range c.items {
-			if time.Now().After(item.expiration) {
-				delete(c.items, key)
-				deleted++
-			}
-		}
-		c.mu.Unlock()
+// Cleanup removes expired items from the cache
+func (c *Cache) Cleanup() {
+	deleted := 0
 
-		if deleted > 0 {
-			log.Info().Int("deleted", deleted).Msg("cache cleanup")
+	c.mu.Lock()
+	for key, item := range c.items {
+		if time.Now().After(item.expiration) {
+			delete(c.items, key)
+			deleted++
 		}
+	}
+	c.mu.Unlock()
+
+	if deleted > 0 {
+		log.Info().Int("deleted", deleted).Msg("cache cleanup")
 	}
 }

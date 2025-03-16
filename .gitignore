@@ -1,2 +1,5 @@
 config.yaml
 srd
+
+c.out
+coverage.html
