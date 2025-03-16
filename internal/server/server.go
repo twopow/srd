@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"srd/internal/resolver"
+	"srd/internal/util"
 )
 
 // Response represents the JSON response structure
@@ -30,13 +31,20 @@ func StartServer(host string, port int) error {
 			return
 		}
 
-		// Set content type to JSON
+		rid := util.UUID7().String()
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("x-request-id", rid)
 
 		// Create response object
 		response := Response{
 			To: value.To,
 		}
+
+		log.Info().
+			Str("request", rid).
+			Str("from", r.Host).
+			Str("to", response.To).
+			Msg("handled request")
 
 		// Encode response as JSON
 		json.NewEncoder(w).Encode(response)
