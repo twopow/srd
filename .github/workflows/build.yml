@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Version
+        id: version
+        uses: twopow/auto-version-action@v1
+
+      - name: update version.txt
+        id: version-txt
+        run: |
+          echo -n "${{ steps.version.outputs.version }}" >version.txt
+          echo "${{ steps.version.outputs.shortlog }}" >shortlog.txt
+          echo "container=${{ inputs.artifact-image }}:${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          # tags: ${{ inputs.artifact-image }}:${{ steps.version.outputs.version }}
+          file: .ci/Dockerfile
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            ACTIONS_RUN_ID=${{ github.run_id }}
+            ACTIONS_RUN_NUMBER=${{ github.run_number }}
+            ACTIONS_RUN_ATTEMPT=${{ github.run_attempt }}
