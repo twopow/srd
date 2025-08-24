@@ -4,9 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"srd/internal/config"
+	"srd/internal/log"
 )
 
 type CacheProvider interface {

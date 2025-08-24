@@ -1,15 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"srd/internal/cache"
 	"srd/internal/config"
+	"srd/internal/log"
 	"srd/internal/resolver"
 	"srd/internal/server"
 )
@@ -23,24 +21,20 @@ var (
 )
 
 func init() {
-	// proactivly set the time field format
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
 	cobra.OnInitialize(initConfig)
 	config.SetupFlags(rootCmd)
 }
 
 func initLogger(debug bool, logCfg config.LogConfig) {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	if logCfg.Pretty {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-		log.Info().Msg("pretty log output enabled")
+	if debug {
+		log.SetGlobalLevel(log.DebugLevel)
+	} else {
+		log.SetGlobalLevel(log.InfoLevel)
 	}
 
-	if debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Debug mode enabled")
+	if logCfg.Pretty {
+		log.SetPrettyOutput(os.Stderr)
+		log.Info().Msg("pretty log output enabled")
 	}
 }
 
@@ -50,9 +44,6 @@ func initConfig() {
 	config.InitConfig(cfgFile)
 
 	cfg := config.GetConfig()
-
-	// TODO: remove
-	fmt.Printf("cfg: %+v\n", cfg)
 
 	initLogger(cfg.Debug, cfg.Log)
 }

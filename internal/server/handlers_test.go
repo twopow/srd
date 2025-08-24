@@ -52,6 +52,10 @@ func doResolverTest(t *testing.T, test TestData) {
 				actual, test.ExpectedTo)
 		}
 	}
+
+	if rr.Header().Get("x-request-id") == "" {
+		t.Fatalf("handler returned no x-request-id")
+	}
 }
 
 func TestResolveHandler_Success(t *testing.T) {

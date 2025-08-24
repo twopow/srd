@@ -3,8 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/rs/zerolog/log"
-
+	"srd/internal/log"
 	"srd/internal/resolver"
 	"srd/internal/util"
 )
@@ -12,6 +11,9 @@ import (
 // Define a handler function for all routes
 func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		rid := util.UUID7().String()
+		w.Header().Set("x-request-id", rid)
+
 		value, err := resolver.Resolve(r.Host)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -23,9 +25,7 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 			return
 		}
 
-		rid := util.UUID7().String()
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("x-request-id", rid)
 
 		log.Info().
 			Str("request", rid).

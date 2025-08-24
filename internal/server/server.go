@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/rs/zerolog/log"
-
+	"srd/internal/log"
 	"srd/internal/resolver"
 )
 

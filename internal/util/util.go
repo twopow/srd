@@ -1,8 +1,9 @@
 package util
 
 import (
+	"srd/internal/log"
+
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 )
 
 func UUID7() uuid.UUID {

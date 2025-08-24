@@ -6,8 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"srd/internal/log"
 
 	cacheM "srd/internal/cache"
 	"srd/internal/config"
@@ -42,11 +41,9 @@ func Init(_cfg config.ResolverConfig, _cache cacheM.CacheProvider) {
 
 func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	stime := time.Now()
-	l := log.With().
-		Str("hostname", hostname).
-		Logger()
+	l := log.With("hostname", hostname)
 
-	if cached, ok := r.getCached(&l, hostname); ok {
+	if cached, ok := r.getCached(l, hostname); ok {
 		l.Info().
 			Str("to", cached.To).
 			Int64("elapsed", time.Since(stime).Milliseconds()).
@@ -55,7 +52,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		return cached, nil
 	}
 
-	record, err = r.doResolve(&l, hostname)
+	record, err = r.doResolve(l, hostname)
 
 	if err != nil {
 		return record, err
@@ -71,7 +68,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	return record, nil
 }
 
-func (r *Resolver) doResolve(l *zerolog.Logger, hostname string) (record RR, err error) {
+func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err error) {
 	l.Info().Msg("resolving hostname")
 
 	record.NotFound = true
@@ -128,7 +125,7 @@ func (r *Resolver) resolveTXT(hostname string) ([]string, error) {
 	return records, nil
 }
 
-func (r *Resolver) getCached(l *zerolog.Logger, hostname string) (rr RR, ok bool) {
+func (r *Resolver) getCached(l *log.Logger, hostname string) (rr RR, ok bool) {
 	cached, ok := r.cache.Get(hostname)
 
 	if !ok {
