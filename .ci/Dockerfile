@@ -11,4 +11,5 @@ RUN go build -o srd main.go
 
 FROM scratch
 COPY --from=builder /app/srd .
+EXPOSE 8080
 ENTRYPOINT ["./srd"]

@@ -7,4 +7,7 @@ test-coverage:
 	go tool cover -func c.out
 
 docker-build:
-    docker build -f .ci/Dockerfile -t srd:latest .
+	docker build -f .ci/Dockerfile -t srd:latest .
+
+run:
+	air run main.go
