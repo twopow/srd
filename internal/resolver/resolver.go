@@ -12,6 +12,10 @@ import (
 	"srd/internal/config"
 )
 
+const (
+	VERSION = "srd1"
+)
+
 var (
 	DefaultResolver ResolverProvider
 )
@@ -30,6 +34,7 @@ type RR struct {
 	Hostname string
 	To       string
 	NotFound bool
+	Version  string
 }
 
 func Init(_cfg config.ResolverConfig, _cache cacheM.CacheProvider) {
@@ -84,27 +89,58 @@ func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err err
 		return record, nil
 	}
 
-	record, err = r.parseRecord(hostname, txtRecords[0])
+	record, err = parseRecord(txtRecords[0])
 	if err != nil {
 		l.Error().Err(err).Msg("failed to parse record")
 		return record, err
 	}
 
+	record.Hostname = hostname
 	return record, nil
 }
 
-func (r *Resolver) parseRecord(hostname string, record string) (RR, error) {
-	parts := strings.Split(record, "=")
-
-	if len(parts) != 2 || parts[0] != "to" {
-		return RR{}, fmt.Errorf("invalid record format")
+func parseRecord(record string) (RR, error) {
+	rr := RR{
+		NotFound: false,
 	}
 
-	return RR{
-		Hostname: hostname,
-		To:       parts[1],
-		NotFound: false,
-	}, nil
+	parts := strings.Split(record, ";")
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		segments := strings.Split(part, "=")
+		if len(segments) == 0 {
+			continue // Skip malformed parts
+		}
+
+		key := strings.TrimSpace(segments[0])
+		value := ""
+
+		if len(segments) > 1 {
+			value = strings.TrimSpace(segments[1])
+		}
+
+		switch key {
+		case "v":
+			rr.Version = value
+		case "dest":
+			rr.To = value
+		}
+	}
+
+	if rr.Version != VERSION {
+		return RR{NotFound: true}, fmt.Errorf("invalid version")
+	}
+
+	if rr.To == "" {
+		return RR{NotFound: true}, fmt.Errorf("no destination found")
+	}
+
+	return rr, nil
 }
 
 // resolveTXT takes a hostname with prefix and returns its TXT records.
