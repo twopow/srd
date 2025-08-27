@@ -25,6 +25,9 @@ type LogConfig struct {
 
 type ResolverConfig struct {
 	RecordPrefix string
+
+	// if no host header is provided, optionally specificy where to redirect
+	NoHostBaseRedirect string
 }
 
 type CacheConfig struct {
@@ -67,6 +70,7 @@ func SetupFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().Bool("log-pretty", false, "enable pretty log output")
 	cmd.PersistentFlags().Duration("cache-ttl", 300*time.Second, "cache ttl")
 	cmd.PersistentFlags().Duration("cache-cleanup-interval", 600*time.Second, "cache cleanup interval")
+	cmd.PersistentFlags().String("no-host-base-redirect", "https://github.com/twopow/srd", "if no host header is provided, optionally specificy where to redirect")
 
 	// Bind flags to viper
 	viper.BindPFlag("host", cmd.PersistentFlags().Lookup("host"))
@@ -76,6 +80,7 @@ func SetupFlags(cmd *cobra.Command) {
 	viper.BindPFlag("log-pretty", cmd.PersistentFlags().Lookup("log-pretty"))
 	viper.BindPFlag("cache-ttl", cmd.PersistentFlags().Lookup("cache-ttl"))
 	viper.BindPFlag("cache-cleanup-interval", cmd.PersistentFlags().Lookup("cache-cleanup-interval"))
+	viper.BindPFlag("no-host-base-redirect", cmd.PersistentFlags().Lookup("no-host-base-redirect"))
 }
 
 // GetConfig returns the application configuration
@@ -85,7 +90,8 @@ func GetConfig() Config {
 		Port:  viper.GetInt("port"),
 		Debug: viper.GetBool("debug"),
 		Resolver: ResolverConfig{
-			RecordPrefix: viper.GetString("resolver-record-prefix"),
+			RecordPrefix:       viper.GetString("resolver-record-prefix"),
+			NoHostBaseRedirect: viper.GetString("no-host-base-redirect"),
 		},
 		Log: LogConfig{
 			Pretty: viper.GetBool("log-pretty"),

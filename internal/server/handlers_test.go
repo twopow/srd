@@ -69,10 +69,10 @@ func TestResolveHandler_Success(t *testing.T) {
 
 func TestResolveHandler_Success_Path(t *testing.T) {
 	doResolverTest(t, TestData{
-		Hostname:       "success.test",
-		Path:           "/path",
+		Hostname:       "success-url.test",
+		Path:           "/otherpath?otherquery=string",
 		ExpectedStatus: http.StatusFound,
-		ExpectedTo:     "http://to.test/path",
+		ExpectedTo:     "https://to.test/path?query=string",
 	})
 }
 func TestResolveHandler_Success_Query(t *testing.T) {
@@ -80,7 +80,7 @@ func TestResolveHandler_Success_Query(t *testing.T) {
 		Hostname:       "success.test",
 		Path:           "/?key=value",
 		ExpectedStatus: http.StatusFound,
-		ExpectedTo:     "http://to.test?key=value",
+		ExpectedTo:     "http://to.test",
 	})
 }
 
@@ -89,7 +89,7 @@ func TestResolveHandler_Success_Path_Query(t *testing.T) {
 		Hostname:       "success.test",
 		Path:           "/path?key=value",
 		ExpectedStatus: http.StatusFound,
-		ExpectedTo:     "http://to.test/path?key=value",
+		ExpectedTo:     "http://to.test",
 	})
 }
 
@@ -102,11 +102,29 @@ func TestResolveHandler_NotFound(t *testing.T) {
 	})
 }
 
+func TestResolveHandler_InvalidToUrl(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "invalid-to-url.test",
+		Path:           "/",
+		ExpectedBody:   `Not found`,
+		ExpectedStatus: http.StatusNotFound,
+	})
+}
+
 func TestResolveHandler_Error(t *testing.T) {
 	doResolverTest(t, TestData{
 		Hostname:       "error.test",
 		Path:           "/",
 		ExpectedBody:   `error`,
 		ExpectedStatus: http.StatusInternalServerError,
+	})
+}
+
+func TestResolveHandler_NoHostBaseRedirect(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "127.0.0.1:8080",
+		Path:           "/",
+		ExpectedStatus: http.StatusFound,
+		ExpectedTo:     "https://github.com/twopow/srd",
 	})
 }

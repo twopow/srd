@@ -3,6 +3,8 @@ package resolver
 import (
 	"fmt"
 	"net"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,6 +31,8 @@ type Resolver struct {
 	cfg   config.ResolverConfig
 }
 
+var ipRegex = regexp.MustCompile(`^[0-9\.:]+$`)
+
 // RR is a Redirect Record
 type RR struct {
 	Hostname string
@@ -48,6 +52,12 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	stime := time.Now()
 	l := log.With("hostname", hostname)
 
+	// if hostname is ip, return the default redirect
+	if r.cfg.NoHostBaseRedirect != "" && ipRegex.MatchString(hostname) {
+		l.Info().Msg("no host base redirect")
+		return RR{To: r.cfg.NoHostBaseRedirect}, nil
+	}
+
 	if cached, ok := r.getCached(l, hostname); ok {
 		l.Info().
 			Str("to", cached.To).
@@ -58,7 +68,6 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	}
 
 	record, err = r.doResolve(l, hostname)
-
 	if err != nil {
 		return record, err
 	}
@@ -138,6 +147,10 @@ func parseRecord(record string) (RR, error) {
 
 	if rr.To == "" {
 		return RR{NotFound: true}, fmt.Errorf("no destination found")
+	}
+
+	if _, err := url.Parse(rr.To); err != nil {
+		return RR{NotFound: true}, fmt.Errorf("invalid destination")
 	}
 
 	return rr, nil

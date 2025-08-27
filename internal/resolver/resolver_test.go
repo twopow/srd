@@ -47,6 +47,14 @@ func TestParseRecord_ExtraFields(t *testing.T) {
 	})
 }
 
+func TestParseRecord_InvalidDestUrl(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record:      "v=srd1; dest=xyz://example.^.com",
+		Want:        RR{NotFound: true},
+		ErrorString: "invalid destination",
+	})
+}
+
 func TestParseRecord_NotFound(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record:      "v=srd1;",

@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"net/url"
 
 	"srd/internal/log"
 	"srd/internal/resolver"
@@ -20,34 +21,34 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 			return
 		}
 
+		l := log.Info().
+			Str("request", rid).
+			Str("from", r.Host).
+			Str("to", value.To)
+
 		if value.NotFound {
+			l.Msg("not found")
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 
-		log.Info().
-			Str("request", rid).
-			Str("from", r.Host).
-			Str("to", value.To).
-			Msg("handled request")
+		l.Msg("redirecting")
 
-		scheme := r.URL.Scheme
-		if scheme == "" {
-			scheme = "http"
+		// parse value.To to get scheme
+		to, err := url.Parse(value.To)
+		if err != nil {
+			l.Err(err).Msg("failed to parse to url")
+
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		to := scheme + "://" + value.To
-
-		if r.URL.Path != "/" {
-			to = to + r.URL.Path
+		if to.Scheme == "" {
+			to.Scheme = "http"
 		}
 
-		if r.URL.RawQuery != "" {
-			to = to + "?" + r.URL.RawQuery
-		}
-
-		http.Redirect(w, r, to, http.StatusFound)
+		http.Redirect(w, r, to.String(), http.StatusFound)
 	}
 }
