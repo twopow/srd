@@ -97,10 +97,3 @@ Configuration can be done via `config.yaml` file, command line flags or environm
 go run main.go --host 127.0.0.1 --port 8080
 ```
 
-
------
-
-#### TODO
-- Redirect loop detection
-- Configurable redirect codes (301, 302, 307, 308)
-- External cache support
