@@ -193,10 +193,13 @@ func (r *Resolver) getCached(l *log.Logger, hostname string) (rr RR, ok bool) {
 		return rr, false
 	}
 
-	l.Info().Msg("cache hit")
-
-	rr = cached.(RR)
-	return rr, true
+	// cast cached to RR
+	if val, ok := cached.(RR); !ok {
+		l.Error().Msg("invalid cached value, expected RR")
+		return rr, false
+	} else {
+		return val, true
+	}
 }
 
 // parseCode parses the code string and returns the corresponding http status code
