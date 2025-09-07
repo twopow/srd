@@ -47,6 +47,8 @@ type RR struct {
 	Version       string
 }
 
+var RRNotFound = RR{NotFound: true, Code: http.StatusNotFound}
+
 func Init(_cfg config.ResolverConfig, _cache cacheM.CacheProvider) {
 	DefaultResolver = &Resolver{
 		cache: _cache,
@@ -81,12 +83,12 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		return record, err
 	}
 
-	l.Info().WithMap(map[string]any{
+	l = l.WithMap(map[string]any{
 		"to":            record.To,
 		"elapsed":       time.Since(stime).Milliseconds(),
 		"preserveRoute": record.PreserveRoute,
 		"code":          record.Code,
-	}).Msg("resolved host")
+	})
 
 	err = r.detectLoop(l, record.To)
 	if err != nil {
@@ -99,6 +101,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		return record, fmt.Errorf("loop detection failed: %w", err)
 	}
 
+	l.Info().Msg("resolved host")
 	r.cache.Set(hostname, record)
 
 	return record, nil
@@ -137,6 +140,7 @@ func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err err
 func parseRecord(record string) (RR, error) {
 	rr := RR{
 		NotFound: false,
+		Code:     http.StatusFound,
 	}
 
 	// remove bounding quotes if they exist
@@ -177,15 +181,15 @@ func parseRecord(record string) (RR, error) {
 	}
 
 	if rr.Version != VERSION {
-		return RR{NotFound: true}, fmt.Errorf("invalid version")
+		return RRNotFound, fmt.Errorf("invalid version")
 	}
 
 	if rr.To == "" {
-		return RR{NotFound: true}, fmt.Errorf("no destination found")
+		return RRNotFound, fmt.Errorf("no destination found")
 	}
 
 	if _, err := url.Parse(rr.To); err != nil {
-		return RR{NotFound: true}, fmt.Errorf("invalid destination")
+		return RRNotFound, fmt.Errorf("invalid destination")
 	}
 
 	return rr, nil

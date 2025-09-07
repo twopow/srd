@@ -75,6 +75,28 @@ func With(attrs ...any) *Logger {
 	return &Logger{globalLogger.With(attrs...)}
 }
 
+// create a func that accepts an object with keys and values
+func WithMap(attrs map[string]any) *Logger {
+	var _attrs []any
+	for key, value := range attrs {
+		_attrs = append(_attrs, key, value)
+	}
+	return &Logger{globalLogger.With(_attrs...)}
+}
+
+func (l *Logger) With(attrs ...any) *Logger {
+	return &Logger{l.Logger.With(attrs...)}
+}
+
+func (l *Logger) WithMap(attrs map[string]any) *Logger {
+	var _attrs []any
+	for key, value := range attrs {
+		_attrs = append(_attrs, key, value)
+	}
+
+	return l.With(_attrs...)
+}
+
 // Debug creates a debug level event
 func Debug() *Event {
 	return &Event{
@@ -115,8 +137,8 @@ func Fatal() *Event {
 	}
 }
 
-func (e *Event) With(key string, value any) *Event {
-	e.attrs = append(e.attrs, key, value)
+func (e *Event) With(attrs ...any) *Event {
+	e.attrs = append(e.attrs, attrs...)
 	return e
 }
 
