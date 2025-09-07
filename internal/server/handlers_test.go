@@ -93,6 +93,15 @@ func TestResolveHandler_Success_Path_Query(t *testing.T) {
 	})
 }
 
+func TestResolveHandler_Success_Preserve_Path_Query(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "success-preserve-path.test",
+		Path:           "/path?key=value",
+		ExpectedStatus: http.StatusFound,
+		ExpectedTo:     "https://to.test/path?key=value",
+	})
+}
+
 func TestResolveHandler_NotFound(t *testing.T) {
 	doResolverTest(t, TestData{
 		Hostname:       "not-found.test",

@@ -1,6 +1,9 @@
 package resolver
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 type MockResolver struct{}
 
@@ -9,24 +12,36 @@ var MockData = map[string]RR{
 		Hostname: "success.test",
 		To:       "to.test",
 		NotFound: false,
+		Code:     http.StatusFound,
 	},
 	"success-url": {
 		Hostname: "success-url.test",
 		To:       "https://to.test/path?query=string",
 		NotFound: false,
+		Code:     http.StatusFound,
+	},
+	"success-preserve-path": {
+		Hostname:      "success-preserve-path.test",
+		To:            "https://to.test/path?query=string",
+		NotFound:      false,
+		PreserveRoute: true,
+		Code:          http.StatusFound,
 	},
 	"invalid-to-url": {
 		Hostname: "invalid-to-url.test",
 		NotFound: true,
+		Code:     http.StatusNotFound,
 	},
 	"not-found": {
 		Hostname: "not-found.test",
 		NotFound: true,
+		Code:     http.StatusNotFound,
 	},
 	"ip-port": {
 		Hostname: "127.0.0.1:8080",
 		To:       "https://github.com/twopow/srd",
 		NotFound: false,
+		Code:     http.StatusFound,
 	},
 }
 

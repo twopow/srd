@@ -1,6 +1,8 @@
 package resolver
 
-import "testing"
+import (
+	"testing"
+)
 
 type TestData struct {
 	Record      string
@@ -30,6 +32,49 @@ func TestParseRecord_Success(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com",
 		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false},
+	})
+}
+
+func TestParseRecord_Route_Preserve_Success(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; route=preserve",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: true},
+	})
+}
+
+func TestParseRecord_Route_Preserve_Invalid(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; route;",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: false},
+	})
+
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; route=drop",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: false},
+	})
+}
+
+func TestParseRecord_Code_Success(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; code=301",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 301},
+	})
+}
+
+func TestParseRecord_Code_Invalid(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; code=abc",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 302},
+	})
+
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; code=111",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 302},
+	})
+
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; code",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 302},
 	})
 }
 

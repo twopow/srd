@@ -49,6 +49,11 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 			to.Scheme = "http"
 		}
 
-		http.Redirect(w, r, to.String(), http.StatusFound)
+		if value.PreserveRoute {
+			to.Path = r.URL.Path
+			to.RawQuery = r.URL.RawQuery
+		}
+
+		http.Redirect(w, r, to.String(), value.Code)
 	}
 }

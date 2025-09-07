@@ -3,6 +3,7 @@ package resolver
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -35,10 +36,12 @@ var ipRegex = regexp.MustCompile(`^[0-9\.:]+$`)
 
 // RR is a Redirect Record
 type RR struct {
-	Hostname string
-	To       string
-	NotFound bool
-	Version  string
+	Hostname      string
+	To            string
+	PreserveRoute bool
+	Code          int
+	NotFound      bool
+	Version       string
 }
 
 func Init(_cfg config.ResolverConfig, _cache cacheM.CacheProvider) {
@@ -138,6 +141,12 @@ func parseRecord(record string) (RR, error) {
 			rr.Version = value
 		case "dest":
 			rr.To = value
+		case "code":
+			rr.Code = parseCode(value)
+		case "route":
+			if value == "preserve" {
+				rr.PreserveRoute = true
+			}
 		}
 	}
 
@@ -185,4 +194,20 @@ func (r *Resolver) getCached(l *log.Logger, hostname string) (rr RR, ok bool) {
 
 	rr = cached.(RR)
 	return rr, true
+}
+
+// parseCode parses the code string and returns the corresponding http status code
+func parseCode(code string) int {
+	switch code {
+	case "301":
+		return http.StatusMovedPermanently
+	case "302":
+		return http.StatusFound
+	case "307":
+		return http.StatusTemporaryRedirect
+	case "308":
+		return http.StatusPermanentRedirect
+	default:
+		return http.StatusFound
+	}
 }
