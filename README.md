@@ -4,27 +4,37 @@ SRD is a tiny HTTP service that turns DNS TXT records into URL redirects. Config
 
 ## Quick Start
 
-> This quickstart uses the [hosted SRD service](#hosted-for-you), though you're welcome to [host your own](#run-your-own).
+> This quickstart uses the [hosted SRD service](#hosted-for-you), though you're welcome to [deploy your own](#deploy-your-own).
 
-1. Point your domain at the SRD service IP: `34.56.76.181`.
-
-2. Publish a TXT record at `_srd.<host>` with the destination URL.
+1. Point your domain to the SRD service IP.
 
     ```
-    ; Apex domain → redirect
-    example.com.          IN A     34.56.76.181
-    _srd.example.com.     IN TXT   "v=srd1; dest=https://example.net"
+    example.com.   IN A   34.56.76.181
+    ```
+
+2. Add a TXT record at _srd.<host> specifying the destination URL.
+
+    ```
+    _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net"
     ```
 
 3. Now hit https://example.com and you should be redirected to https://example.net.
 
     ```
-    # Verify TXT
+    # Check TXT record
     dig +short TXT _srd.example.com
 
-    # Verify redirect (look for Location header)
+    # Test redirect (look for Location header)
     curl -I https://example.com
     ```
+
+Now requests to https://example.com will redirect to https://example.net.
+
+Note: Subdomains are supported in the same way. For example, to redirect blog.example.com, configure:
+
+blog.example.com.   IN A     34.56.76.181
+_srd.blog.example.com.   IN TXT   "v=srd1; dest=https://newblog.example.net"
+
 
 ## How it works
 
@@ -34,22 +44,28 @@ SRD is a tiny HTTP service that turns DNS TXT records into URL redirects. Config
 
 ## Troubleshooting
 
-- `dig` doesn’t show the TXT record → Wait for DNS propagation or lower the DNS TTL while testing.
-- `curl -I` shows no Location header → Confirm the _srd.<host> record exists and contains v=srd1; dest=....
-- Redirect loop → Make sure dest isn’t pointing back to the same host.
-- Behind a proxy/CDN → Verify it forwards to SRD unmodified and the client hits SRD for example.com.
+- **`dig` doesn’t show the TXT record** → Wait for DNS propagation or lower the DNS TTL while testing.
+- **`curl -I` shows no Location header** → Confirm the _srd.<host> record exists and contains v=srd1; dest=....
+- **Redirect loop** → Make sure dest isn’t pointing back to the same host.
+- **Behind a proxy/CDN** → Verify it forwards to SRD unmodified and the client hits SRD for example.com.
 
-# Running SRD
+## Running SRD
 
-## Hosted for you
+### Hosted for you
 
-SRD provides a hosted service for you to use with a static IP, free of charge. You can use the hosted SRD by pointing your domain at the SRD service IP: `34.56.76.181`.
+SRD provides a hosted service for you to use with a static IP, free of charge. You can use the hosted SRD by pointing your domain at the **SRD service IP**: `34.56.76.181`.
 
 Use the free hosted SRD with the static IPv4: 34.56.76.181. Point your A record(s) at that IP and add the corresponding `_srd.<host>` TXT record. No accounts or control panel - DNS is the source of truth.
 
+Alternatively, you can use a CNAME record pointing to `in.srd.twopow.com`:
+
+```
+example.com.   IN CNAME   in.srd.twopow.com
+```
+
 If you later self‑host, simply change the A record; your TXT‑driven redirects remain the same.
 
-## Run your own
+### Deploy your own
 
 Deploy SRD anywhere you can run a small HTTP service. Open the listening port and put it behind your preferred load balancer or reverse proxy.
 
@@ -64,6 +80,6 @@ go run main.go --host 127.0.0.1 --port 8080
 -----
 
 #### TODO
-- TLS support
 - Redirect loop detection
 - Configurable redirect codes (301, 302, 307, 308)
+- External cache support
