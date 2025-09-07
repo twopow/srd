@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -31,6 +32,8 @@ type Resolver struct {
 	cache cacheM.CacheProvider
 	cfg   config.ResolverConfig
 }
+
+var LoopError = errors.New("loop detected")
 
 var ipRegex = regexp.MustCompile(`^[0-9\.:]+$`)
 
@@ -85,6 +88,17 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		"code":          record.Code,
 	}).Msg("resolved host")
 
+	err = r.detectLoop(l, record.To)
+	if err != nil {
+		if errors.Is(err, LoopError) {
+			l.Warn().Msg("loop detected")
+			return record, LoopError
+		}
+
+		l.Error().Err(err).Msg("loop detection failed")
+		return record, fmt.Errorf("loop detection failed: %w", err)
+	}
+
 	r.cache.Set(hostname, record)
 
 	return record, nil
@@ -108,6 +122,12 @@ func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err err
 	if err != nil {
 		l.Error().Err(err).Msg("failed to parse record")
 		return record, err
+	}
+
+	// ensure destination url has a scheme
+	// so url.Parse can parse the url appropriately
+	if !strings.Contains(record.To, "://") {
+		record.To = "http://" + record.To
 	}
 
 	record.Hostname = hostname
@@ -169,6 +189,24 @@ func parseRecord(record string) (RR, error) {
 	}
 
 	return rr, nil
+}
+
+// detectLoop checks if the to host is already in the cache
+// if it is, it returns true, otherwise it returns false
+func (r *Resolver) detectLoop(l *log.Logger, to string) error {
+	url, err := url.Parse(to)
+	if err != nil {
+		return err
+	}
+
+	toHost := url.Host
+
+	_, ok := r.getCached(l, toHost)
+	if !ok {
+		return nil
+	}
+
+	return LoopError
 }
 
 // resolveTXT takes a hostname with prefix and returns its TXT records.

@@ -1,24 +1,29 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"srd/internal/log"
-	"srd/internal/resolver"
+	resolverP "srd/internal/resolver"
 	"srd/internal/util"
 )
 
 // Define a handler function for all routes
-func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
+func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rid := util.UUID7().String()
 		w.Header().Set("x-request-id", rid)
 
 		value, err := resolver.Resolve(r.Host)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			if errors.Is(err, resolverP.LoopError) {
+				http.Error(w, "loop detected", http.StatusBadRequest)
+				return
+			}
+
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
@@ -36,12 +41,6 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-
-		// ensure destination url has a scheme
-		// so url.Parse can parse the url appropriately
-		if !strings.Contains(value.To, "://") {
-			value.To = "http://" + value.To
-		}
 
 		l.Msg("redirecting")
 

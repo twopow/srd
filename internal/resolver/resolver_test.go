@@ -28,6 +28,8 @@ func doParseRecordTest(t *testing.T, test TestData) {
 	}
 }
 
+// TODO: how do we test the loop detection?
+
 func TestParseRecord_Success(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com",
