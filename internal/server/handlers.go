@@ -23,9 +23,11 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 		}
 
 		l := log.Info().
-			Str("request", rid).
-			Str("from", r.Host).
-			Str("to", value.To)
+			WithMap(map[string]any{
+				"request": rid,
+				"from":    r.Host,
+				"to":      value.To,
+			})
 
 		if value.NotFound {
 			l.Msg("not found")

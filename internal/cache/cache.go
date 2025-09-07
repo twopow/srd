@@ -95,6 +95,6 @@ func (c *Cache) Cleanup() {
 	c.mu.Unlock()
 
 	if deleted > 0 {
-		log.Info().Int("deleted", deleted).Msg("cache cleanup")
+		log.Info().With("deleted", deleted).Msg("cache cleanup")
 	}
 }

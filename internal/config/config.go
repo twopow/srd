@@ -56,7 +56,7 @@ func InitConfig(cfgFilePath string) {
 
 	// Read config file
 	if err := viper.ReadInConfig(); err == nil {
-		log.Info().Str("config", viper.ConfigFileUsed()).Msg("using config file")
+		log.Info().With("config", viper.ConfigFileUsed()).Msg("using config file")
 	}
 }
 

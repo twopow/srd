@@ -16,7 +16,7 @@ type Response struct {
 // StartServer starts an HTTP server on the specified host and port
 func StartServer(host string, port int) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
-	log.Info().Str("addr", addr).Msg("booting server")
+	log.Info().With("addr", addr).Msg("booting server")
 
 	http.HandleFunc("/", ResolveHandler(resolver.DefaultResolver))
 

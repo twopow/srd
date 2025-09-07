@@ -62,10 +62,13 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	}
 
 	if cached, ok := r.getCached(l, hostname); ok {
-		l.Info().
-			Str("to", cached.To).
-			Int64("elapsed", time.Since(stime).Milliseconds()).
-			Msg("resolved host")
+		l.Info().WithMap(map[string]any{
+			"to":            cached.To,
+			"cached":        true,
+			"elapsed":       time.Since(stime).Milliseconds(),
+			"preserveRoute": cached.PreserveRoute,
+			"code":          cached.Code,
+		}).Msg("resolved host")
 
 		return cached, nil
 	}
@@ -75,10 +78,12 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		return record, err
 	}
 
-	l.Info().
-		Str("to", record.To).
-		Int64("elapsed", time.Since(stime).Milliseconds()).
-		Msg("resolved host")
+	l.Info().WithMap(map[string]any{
+		"to":            record.To,
+		"elapsed":       time.Since(stime).Milliseconds(),
+		"preserveRoute": record.PreserveRoute,
+		"code":          record.Code,
+	}).Msg("resolved host")
 
 	r.cache.Set(hostname, record)
 
@@ -86,8 +91,6 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 }
 
 func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err error) {
-	l.Info().Msg("resolving hostname")
-
 	record.NotFound = true
 	txtRecords, err := r.resolveTXT(hostname)
 

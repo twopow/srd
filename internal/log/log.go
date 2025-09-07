@@ -115,21 +115,16 @@ func Fatal() *Event {
 	}
 }
 
-// Str adds a string attribute to the event
-func (e *Event) Str(key, value string) *Event {
+func (e *Event) With(key string, value any) *Event {
 	e.attrs = append(e.attrs, key, value)
 	return e
 }
 
-// Int64 adds an int64 attribute to the event
-func (e *Event) Int64(key string, value int64) *Event {
-	e.attrs = append(e.attrs, key, value)
-	return e
-}
-
-// Int adds an int attribute to the event
-func (e *Event) Int(key string, value int) *Event {
-	e.attrs = append(e.attrs, key, value)
+// create a func that accepts an object with keys and values
+func (e *Event) WithMap(attrs map[string]any) *Event {
+	for key, value := range attrs {
+		e.attrs = append(e.attrs, key, value)
+	}
 	return e
 }
 
