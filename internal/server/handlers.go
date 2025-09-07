@@ -54,6 +54,10 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 			to.RawQuery = r.URL.RawQuery
 		}
 
+		if value.Code == 0 {
+			value.Code = http.StatusFound
+		}
+
 		http.Redirect(w, r, to.String(), value.Code)
 	}
 }
