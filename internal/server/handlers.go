@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"net/url"
+	"strings"
 
 	"srd/internal/log"
 	"srd/internal/resolver"
@@ -34,9 +35,14 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 
+		// ensure destination url has a scheme
+		// so url.Parse can parse the url appropriately
+		if !strings.Contains(value.To, "://") {
+			value.To = "http://" + value.To
+		}
+
 		l.Msg("redirecting")
 
-		// parse value.To to get scheme
 		to, err := url.Parse(value.To)
 		if err != nil {
 			l.Err(err).Msg("failed to parse to url")
@@ -57,6 +63,9 @@ func ResolveHandler(resolver resolver.ResolverProvider) http.HandlerFunc {
 		if value.Code == 0 {
 			value.Code = http.StatusFound
 		}
+
+		// note, the full destination url is not logged
+		// because it may contain sensitive information
 
 		http.Redirect(w, r, to.String(), value.Code)
 	}

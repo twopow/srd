@@ -27,6 +27,13 @@ var MockData = map[string]RR{
 		PreserveRoute: true,
 		Code:          http.StatusFound,
 	},
+	"success-preserve-path-no-scheme": {
+		Hostname:      "success-preserve-path-no-scheme.test",
+		To:            "to.test/path?query=string",
+		NotFound:      false,
+		PreserveRoute: true,
+		Code:          http.StatusFound,
+	},
 	"invalid-to-url": {
 		Hostname: "invalid-to-url.test",
 		NotFound: true,
