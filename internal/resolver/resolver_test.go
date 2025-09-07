@@ -85,6 +85,13 @@ func TestParseRecord_Splitting(t *testing.T) {
 	})
 }
 
+func TestParseRecord_QuoteTriming(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record: "\"v=srd1; dest=https://example.com\"",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false},
+	})
+}
+
 func TestParseRecord_ExtraFields(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; extra=field; extra2=field2",

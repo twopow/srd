@@ -116,6 +116,9 @@ func parseRecord(record string) (RR, error) {
 		NotFound: false,
 	}
 
+	// remove bounding quotes if they exist
+	record = strings.Trim(record, "\"")
+
 	parts := strings.Split(record, ";")
 
 	for _, part := range parts {
