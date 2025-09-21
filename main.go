@@ -1,67 +1,60 @@
 package main
 
 import (
-	"os"
+	"fmt"
 
-	"github.com/spf13/cobra"
+	"github.com/alecthomas/kong"
+	kongyaml "github.com/alecthomas/kong-yaml"
 
 	"srd/internal/cache"
-	"srd/internal/config"
 	"srd/internal/log"
 	"srd/internal/resolver"
 	"srd/internal/server"
 )
 
-var (
-	rootCmd = &cobra.Command{
-		Use:   "srd",
-		Short: "SRD application",
-		Run:   run,
-	}
-)
-
-func init() {
-	cobra.OnInitialize(initConfig)
-	config.SetupFlags(rootCmd)
+type Context struct {
+	Debug bool
 }
 
-func initLogger(debug bool, logCfg config.LogConfig) {
-	if debug {
-		log.SetGlobalLevel(log.DebugLevel)
-	} else {
-		log.SetGlobalLevel(log.InfoLevel)
-	}
-
-	if logCfg.Pretty {
-		log.SetPrettyOutput(os.Stderr)
-		log.Info().Msg("pretty log output enabled")
-	}
+type ServeCmd struct {
+	Server struct {
+		Host string `help:"Host for the HTTP server." default:"localhost"`
+		Port int    `help:"Port for the HTTP server." default:"8080"`
+	} `embed:"" prefix:"server."`
+	Log      log.LogConfig           `embed:"" prefix:"log."`
+	Resolver resolver.ResolverConfig `embed:"" prefix:"resolver."`
+	Cache    cache.CacheConfig       `embed:"" prefix:"cache."`
 }
 
-func initConfig() {
-	// Get the config file path from the command
-	cfgFile, _ := rootCmd.PersistentFlags().GetString("config")
-	config.InitConfig(cfgFile)
+func (s *ServeCmd) Run(ctx *Context) error {
+	log.NewLogger(ctx.Debug, s.Log.Pretty)
+	cache := cache.New(s.Cache)
+	resolver.Init(s.Resolver, cache)
+	server.StartServer(s.Server.Host, s.Server.Port)
 
-	cfg := config.GetConfig()
-
-	initLogger(cfg.Debug, cfg.Log)
+	return nil
 }
 
-func run(cmd *cobra.Command, args []string) {
-	cfg := config.GetConfig()
-	cache := cache.New(cfg.Cache)
+type CLI struct {
+	Config kong.ConfigFlag `name:"config" type:"existingfile" help:"Path to config yaml file." env:"CONFIG_FILE"`
 
-	// pass config to resolver
-	resolver.Init(cfg.Resolver, cache)
-
-	if err := server.StartServer(cfg.Host, cfg.Port); err != nil {
-		log.Fatal().Err(err).Msg("Failed to start server")
-	}
+	Debug bool     `help:"Enable debug logging." env:"DEBUG"`
+	Serve ServeCmd `cmd:"" help:"Run the HTTP server."`
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to execute command")
+	var cli CLI
+	ctx := kong.Parse(&cli,
+		kong.Name("srd"),
+		kong.Description("srd server"),
+		kong.Configuration(kongyaml.Loader, "config.yaml", "config.yml", ".config.yaml", ".config.yml"),
+		kong.DefaultEnvars("SRD"),
+	)
+
+	if cli.Debug {
+		fmt.Printf("cli: %+v\n", cli)
 	}
+
+	err := ctx.Run(&Context{Debug: cli.Debug})
+	ctx.FatalIfErrorf(err)
 }

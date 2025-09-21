@@ -13,12 +13,16 @@ import (
 	"srd/internal/log"
 
 	cacheM "srd/internal/cache"
-	"srd/internal/config"
 )
 
 const (
 	VERSION = "srd1"
 )
+
+type ResolverConfig struct {
+	RecordPrefix       string `help:"Record prefix." default:"_srd"`
+	NoHostBaseRedirect string `help:"No host base redirect." default:"https://github.com/twopow/srd"`
+}
 
 var (
 	DefaultResolver ResolverProvider
@@ -30,12 +34,12 @@ type ResolverProvider interface {
 
 type Resolver struct {
 	cache cacheM.CacheProvider
-	cfg   config.ResolverConfig
+	cfg   ResolverConfig
 }
 
-var LoopError = errors.New("loop detected")
+var ErrLoop = errors.New("loop detected")
 
-var ipRegex = regexp.MustCompile(`^[0-9\.:]+$`)
+var ipRegex = regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?$`)
 
 // RR is a Redirect Record
 type RR struct {
@@ -49,7 +53,7 @@ type RR struct {
 
 var RRNotFound = RR{NotFound: true, Code: http.StatusNotFound}
 
-func Init(_cfg config.ResolverConfig, _cache cacheM.CacheProvider) {
+func Init(_cfg ResolverConfig, _cache cacheM.CacheProvider) {
 	DefaultResolver = &Resolver{
 		cache: _cache,
 		cfg:   _cfg,
@@ -92,9 +96,9 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 
 	err = r.detectLoop(l, record.To)
 	if err != nil {
-		if errors.Is(err, LoopError) {
+		if errors.Is(err, ErrLoop) {
 			l.Warn().Msg("loop detected")
-			return record, LoopError
+			return record, ErrLoop
 		}
 
 		l.Error().Err(err).Msg("loop detection failed")
@@ -210,7 +214,7 @@ func (r *Resolver) detectLoop(l *log.Logger, to string) error {
 		return nil
 	}
 
-	return LoopError
+	return ErrLoop
 }
 
 // resolveTXT takes a hostname with prefix and returns its TXT records.

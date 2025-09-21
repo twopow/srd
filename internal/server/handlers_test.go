@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"srd/internal/cache"
-	"srd/internal/config"
 	"srd/internal/resolver"
 )
 
@@ -25,7 +24,7 @@ func doResolverTest(t *testing.T, test TestData) {
 		t.Fatal(err)
 	}
 
-	resolver.Init(config.ResolverConfig{}, cache.Mock())
+	resolver.Init(resolver.ResolverConfig{}, cache.Mock())
 
 	req.Host = test.Hostname
 	rr := httptest.NewRecorder()

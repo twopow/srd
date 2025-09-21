@@ -1,13 +1,12 @@
 package cache
 
 import (
-	"srd/internal/config"
 	"testing"
 	"time"
 )
 
 func TestCache_SetAndGet(t *testing.T) {
-	cfg := config.CacheConfig{
+	cfg := CacheConfig{
 		TTL:             time.Second * 5,
 		CleanupInterval: time.Second * 10,
 	}
@@ -60,7 +59,7 @@ func TestCache_SetAndGet(t *testing.T) {
 }
 
 func TestCache_GetExpiredCleanup(t *testing.T) {
-	cfg := config.CacheConfig{
+	cfg := CacheConfig{
 		TTL:             time.Millisecond * 100, // Very short TTL for testing
 		CleanupInterval: time.Second * 10,
 	}
@@ -81,7 +80,7 @@ func TestCache_GetExpiredCleanup(t *testing.T) {
 }
 
 func TestCache_GetNonExistent(t *testing.T) {
-	cfg := config.CacheConfig{
+	cfg := CacheConfig{
 		TTL:             time.Second * 5,
 		CleanupInterval: time.Second * 10,
 	}

@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+type LogConfig struct {
+	Pretty bool `help:"Pretty log output." default:"false"`
+}
+
 var (
 	// Global logger instance
 	globalLogger *slog.Logger
@@ -39,10 +43,20 @@ type Logger struct {
 
 // init initializes the default logger
 func init() {
-	defaultHandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})
-	globalLogger = slog.New(defaultHandler)
+	SetGlobalLevel(InfoLevel)
+}
+
+func NewLogger(debug bool, pretty bool) {
+	if debug {
+		SetGlobalLevel(DebugLevel)
+	} else {
+		SetGlobalLevel(InfoLevel)
+	}
+
+	if pretty {
+		SetPrettyOutput(os.Stderr)
+		Info().Msg("pretty log output enabled")
+	}
 }
 
 // SetGlobalLevel sets the global log level

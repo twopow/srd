@@ -4,9 +4,13 @@ import (
 	"sync"
 	"time"
 
-	"srd/internal/config"
 	"srd/internal/log"
 )
+
+type CacheConfig struct {
+	TTL             time.Duration `help:"Cache TTL in seconds." default:"300s"`
+	CleanupInterval time.Duration `help:"Cache cleanup interval in seconds." default:"600s"`
+}
 
 type CacheProvider interface {
 	Get(key string) (interface{}, bool)
@@ -22,11 +26,11 @@ type item struct {
 type Cache struct {
 	items  map[string]item
 	mu     sync.RWMutex
-	config config.CacheConfig
+	config CacheConfig
 }
 
 // New creates a new Cache instance
-func New(cfg config.CacheConfig) CacheProvider {
+func New(cfg CacheConfig) CacheProvider {
 	c := &Cache{
 		items:  make(map[string]item),
 		config: cfg,

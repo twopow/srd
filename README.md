@@ -90,10 +90,10 @@ If you later self‑host, simply change the A record; your TXT‑driven redirect
 
 Deploy SRD anywhere you can run a small HTTP service. Open the listening port and put it behind your preferred load balancer or reverse proxy.
 
-Configuration can be done via `config.yaml` file, command line flags or environment variables.
+Configuration can be done via `config.yaml` file, command line flags or environment variables. Refer to `config.example.yaml` for an example start configuration file.
 
 ```
 # example of running srd locally
-go run main.go --host 127.0.0.1 --port 8080
+go run main.go serve --server.host 127.0.0.1 --server.port 8080
 ```
 

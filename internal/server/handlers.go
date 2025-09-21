@@ -18,7 +18,7 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 
 		value, err := resolver.Resolve(r.Host)
 		if err != nil {
-			if errors.Is(err, resolverP.LoopError) {
+			if errors.Is(err, resolverP.ErrLoop) {
 				http.Error(w, "loop detected", http.StatusBadRequest)
 				return
 			}

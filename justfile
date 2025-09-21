@@ -10,4 +10,4 @@ docker-build:
 	docker build -f .ci/Dockerfile -t srd:latest .
 
 run:
-	air run main.go
+	air serve
