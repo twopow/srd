@@ -6,11 +6,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
 	"srd/internal/log"
+	"srd/internal/util"
 
 	cacheM "srd/internal/cache"
 )
@@ -39,8 +39,6 @@ type Resolver struct {
 
 var ErrLoop = errors.New("loop detected")
 
-var ipRegex = regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?$`)
-
 // RR is a Redirect Record
 type RR struct {
 	Hostname      string
@@ -65,7 +63,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	l := log.With("hostname", hostname)
 
 	// if hostname is ip, return the default redirect
-	if r.cfg.NoHostBaseRedirect != "" && ipRegex.MatchString(hostname) {
+	if r.cfg.NoHostBaseRedirect != "" && util.IsIp(hostname) {
 		l.Info().Msg("no host base redirect")
 		return RR{To: r.cfg.NoHostBaseRedirect}, nil
 	}

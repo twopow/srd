@@ -1,5 +1,8 @@
 debug: true
 serve:
+  log.pretty: true
   server.host: 127.0.0.1
   server.port: 8080
-  log.pretty: true
+  server.caddyhelper.enabled: true
+  server.caddyhelper.host: 127.0.0.1
+  server.caddyhelper.port: 8081

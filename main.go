@@ -17,10 +17,7 @@ type Context struct {
 }
 
 type ServeCmd struct {
-	Server struct {
-		Host string `help:"Host for the HTTP server." default:"localhost"`
-		Port int    `help:"Port for the HTTP server." default:"8080"`
-	} `embed:"" prefix:"server."`
+	Server   server.ServerConfig     `embed:"" prefix:"server."`
 	Log      log.LogConfig           `embed:"" prefix:"log."`
 	Resolver resolver.ResolverConfig `embed:"" prefix:"resolver."`
 	Cache    cache.CacheConfig       `embed:"" prefix:"cache."`
@@ -30,7 +27,7 @@ func (s *ServeCmd) Run(ctx *Context) error {
 	log.NewLogger(ctx.Debug, s.Log.Pretty)
 	cache := cache.New(s.Cache)
 	resolver.Init(s.Resolver, cache)
-	server.StartServer(s.Server.Host, s.Server.Port)
+	server.Start(s.Server)
 
 	return nil
 }

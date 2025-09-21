@@ -1,10 +1,13 @@
 package util
 
 import (
+	"regexp"
 	"srd/internal/log"
 
 	"github.com/google/uuid"
 )
+
+var IpRegex = regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?$`)
 
 func UUID7() uuid.UUID {
 	u, err := uuid.NewV7()
@@ -13,4 +16,8 @@ func UUID7() uuid.UUID {
 	}
 
 	return u
+}
+
+func IsIp(hostname string) bool {
+	return IpRegex.MatchString(hostname)
 }

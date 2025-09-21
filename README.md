@@ -97,3 +97,7 @@ Configuration can be done via `config.yaml` file, command line flags or environm
 go run main.go serve --server.host 127.0.0.1 --server.port 8080
 ```
 
+### Caddy Helper
+
+When deploying SRD behind a Caddy server, you can use CaddyHelper to support [on-demand TLS](https://caddyserver.com/docs/caddyfile/options#on-demand-tls) issuance. CaddyHelper is a lightweight HTTP service that runs alongside SRD. Before allowing Caddy to issue a certificate, it verifies that the domain is properly configured in SRD by resolving the domain through SRD and confirming a successful redirect response.
+
