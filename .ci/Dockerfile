@@ -11,5 +11,11 @@ RUN go build -o srd main.go
 
 FROM scratch
 COPY --from=builder /app/srd .
+
+# srd port
 EXPOSE 8080
+
+# caddy helper port
+EXPOSE 8081
+
 ENTRYPOINT ["./srd", "serve"]
