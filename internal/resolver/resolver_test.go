@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"net/http"
 	"testing"
 )
 
@@ -33,78 +34,78 @@ func doParseRecordTest(t *testing.T, test TestData) {
 func TestParseRecord_Success(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_Route_Preserve_Success(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; route=preserve",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: true},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: true, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_Route_Preserve_Invalid(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; route;",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: false},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: false, Code: http.StatusFound},
 	})
 
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; route=drop",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: false},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, PreserveRoute: false, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_Code_Success(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; code=301",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 301},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusMovedPermanently},
 	})
 }
 
 func TestParseRecord_Code_Invalid(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; code=abc",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 302},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; code=111",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 302},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; code",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: 302},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_Splitting(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1;;;;   ;;; ; ; ;;; dest=https://example.com",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_QuoteTriming(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "\"v=srd1; dest=https://example.com\"",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_ExtraFields(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; extra=field; extra2=field2",
-		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false},
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, Code: http.StatusFound},
 	})
 }
 
 func TestParseRecord_InvalidDestUrl(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record:      "v=srd1; dest=xyz://example.^.com",
-		Want:        RR{NotFound: true},
+		Want:        RR{NotFound: true, Code: http.StatusNotFound},
 		ErrorString: "invalid destination",
 	})
 }
@@ -112,7 +113,7 @@ func TestParseRecord_InvalidDestUrl(t *testing.T) {
 func TestParseRecord_NotFound(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record:      "v=srd1;",
-		Want:        RR{NotFound: true},
+		Want:        RR{NotFound: true, Code: http.StatusNotFound},
 		ErrorString: "no destination found",
 	})
 }

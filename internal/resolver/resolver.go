@@ -131,8 +131,7 @@ func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err err
 		return record, err
 	}
 
-	// ensure destination url has a scheme
-	// so url.Parse can parse the url appropriately
+	// url.Parse expects a scheme
 	if !strings.Contains(record.To, "://") {
 		record.To = "http://" + record.To
 	}

@@ -114,7 +114,7 @@ func TestResolveHandler_NotFound(t *testing.T) {
 	doResolverTest(t, TestData{
 		Hostname:       "not-found.test",
 		Path:           "/",
-		ExpectedBody:   `Not found`,
+		ExpectedBody:   "Not found",
 		ExpectedStatus: http.StatusNotFound,
 	})
 }
@@ -123,7 +123,7 @@ func TestResolveHandler_InvalidToUrl(t *testing.T) {
 	doResolverTest(t, TestData{
 		Hostname:       "invalid-to-url.test",
 		Path:           "/",
-		ExpectedBody:   `Not found`,
+		ExpectedBody:   "Not found",
 		ExpectedStatus: http.StatusNotFound,
 	})
 }
@@ -132,7 +132,7 @@ func TestResolveHandler_Error(t *testing.T) {
 	doResolverTest(t, TestData{
 		Hostname:       "error.test",
 		Path:           "/",
-		ExpectedBody:   `error`,
+		ExpectedBody:   "internal server error",
 		ExpectedStatus: http.StatusInternalServerError,
 	})
 }

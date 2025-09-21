@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"srd/internal/log"
 	resolverP "srd/internal/resolver"
@@ -44,16 +45,17 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 
 		l.Msg("redirecting")
 
+		// url.Parse expects a scheme
+		if !strings.Contains(value.To, "://") {
+			value.To = "http://" + value.To
+		}
+
 		to, err := url.Parse(value.To)
 		if err != nil {
 			l.Err(err).Msg("failed to parse to url")
 
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		}
-
-		if to.Scheme == "" {
-			to.Scheme = "http"
 		}
 
 		if value.PreserveRoute {
@@ -68,6 +70,7 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 		// note, the full destination url is not logged
 		// because it may contain sensitive information
 
-		http.Redirect(w, r, to.String(), value.Code)
+		dest := to.String()
+		http.Redirect(w, r, dest, value.Code)
 	}
 }
