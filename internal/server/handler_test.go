@@ -198,7 +198,7 @@ func TestResolveHandler_RefererPolicy_Full(t *testing.T) {
 		ExpectedStatus: http.StatusFound,
 		ExpectedTo:     "https://to.test/path?query=string",
 		ExpectedHeaders: map[string]string{
-			"Referer": "http://success-referer-policy-full.test/route?key=value",
+			"Referer": "success-referer-policy-full.test/route?key=value",
 		},
 	})
 }

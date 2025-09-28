@@ -99,11 +99,6 @@ func setReferer(w http.ResponseWriter, r *http.Request, value resolverP.RR) {
 	}
 
 	// full
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-
-	referer := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.RequestURI())
+	referer := fmt.Sprintf("%s%s", r.Host, r.URL.RequestURI())
 	w.Header().Set("Referer", referer)
 }
