@@ -231,68 +231,43 @@ If DNS lookup fails:
 - **Status Code**: 503 (Service Unavailable)
 - **Body**: Error message indicating DNS resolution failure
 
-## 5. Deployment Models
+## 5. Security Considerations
 
-### 5.1 Hosted Service
-
-A hosted SRD service is available at:
-- **IPv4 Address**: 34.56.76.181
-- **CNAME Target**: in.srd.twopow.com
-
-Domain owners can point their domains to the hosted service using either:
-```
-example.com.   IN A   34.56.76.181
-```
-or
-```
-example.com.   IN CNAME   in.srd.twopow.com
-```
-
-### 5.2 Self-Hosted Deployment
-
-SRD can be deployed as a standalone HTTP service with the following characteristics:
-- Lightweight HTTP server
-- DNS resolution capabilities
-- Configurable caching
-- Support for reverse proxy deployment
-
-## 6. Security Considerations
-
-### 6.1 DNS Security
+### 5.1 DNS Security
 
 - SRD relies on DNS integrity for redirect configuration
 - DNSSEC is recommended for production deployments
 - DNS cache poisoning could redirect users to malicious destinations
 
-### 6.2 Redirect Loops
+### 5.2 Redirect Loops
 
 - Implementers should detect and prevent redirect loops
 - Consider limiting redirect chain depth
 - Validate that destination URLs do not point back to SRD services
 
-### 6.3 HTTPS Considerations
+### 5.3 HTTPS Considerations
 
 - SRD services should support HTTPS
 - Certificate management for hosted services
 - HSTS headers should be considered for security
 
-## 7. Performance Considerations
+## 6. Performance Considerations
 
-### 7.1 DNS Caching
+### 6.1 DNS Caching
 
 - SRD records should be cached based on DNS TTL
 - Implement appropriate cache invalidation
 - Consider minimum and maximum cache times
 
-### 7.2 DNS Resolution
+### 6.2 DNS Resolution
 
 - Use efficient DNS resolution libraries
 - Implement connection pooling for DNS queries
 - Consider DNS-over-HTTPS for enhanced security
 
-## 8. Examples
+## 7. Examples
 
-### 8.1 Basic Redirect Setup
+### 7.1 Basic Redirect Setup
 
 1. Configure DNS A record:
    ```
@@ -310,11 +285,11 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    # Should return: Location: https://example.net
    ```
 
-### 8.2 Subdomain Redirect
+### 7.2 Subdomain Redirect
 
 1. Configure subdomain CNAME record:
    ```
-   blog.example.com.   IN CNAME   in.srd.twopow.com
+   blog.example.com.   IN CNAME   in.srd.sh
    ```
 
 2. Configure SRD record:
@@ -322,11 +297,11 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    _srd.blog.example.com.   IN TXT   "v=srd1; dest=https://newblog.example.net"
    ```
 
-### 8.3 Permanent Redirect with Path Preservation
+### 7.3 Permanent Redirect with Path Preservation
 
 1. Configure domain CNAME record:
    ```
-   old.example.com.   IN CNAME   in.srd.twopow.com
+   old.example.com.   IN CNAME   in.srd.sh
    ```
 
 2. Configure SRD record with permanent redirect and path preservation:
@@ -341,11 +316,11 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    # Status: 301 Moved Permanently
    ```
 
-### 8.4 Referer Header Control
+### 7.4 Referer Header Control
 
 1. Configure domain CNAME record:
    ```
-   private.example.com.   IN CNAME   in.srd.twopow.com
+   private.example.com.   IN CNAME   in.srd.sh
    ```
 
 2. Configure SRD record with no referer header:
@@ -372,9 +347,9 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    # Should include: Referer: tracking.example.com/page?source=email
    ```
 
-## 9. Future Considerations
+## 8. Future Considerations
 
-### 9.1 Protocol Extensions
+### 8.1 Protocol Extensions
 
 Future versions of the SRD protocol may include:
 - Additional redirect types (permanent vs temporary)
@@ -382,20 +357,20 @@ Future versions of the SRD protocol may include:
 - Conditional redirects based on user agent or location
 - Multiple destination support for load balancing
 
-### 9.2 Integration
+### 8.2 Integration
 
 Potential integration points:
 - DNS providers offering SRD record management
 - CDN services supporting SRD protocol
 - DNS management tools with SRD support
 
-## 10. References
+## 9. References
 
 - [RFC 1035] - Domain Names - Implementation and Specification
 - [RFC 2616] - Hypertext Transfer Protocol -- HTTP/1.1
 - [RFC 6265] - HTTP State Management Mechanism
 
-## 11. Acknowledgments
+## 10. Acknowledgments
 
 The SRD protocol was developed to address the need for simple, DNS-based URL redirection without the complexity of traditional redirect services.
 

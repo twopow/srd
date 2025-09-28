@@ -9,32 +9,32 @@ SRD is a tiny HTTP service that turns DNS TXT records into URL redirects. Config
 1. Point your domain to the SRD service IP.
 
 ```
-    example.com.   IN A   34.56.76.181
+    blog.example.com.   IN CNAME   in.srd.sh
 ```
 
 2. Add a TXT record at _srd.<host> specifying the destination URL.
 
 ```
-    _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net"
+    _srd.blog.example.com.   IN TXT   "v=srd1; dest=https://newblog.example.net"
 ```
 
-3. Now hit https://example.com and you should be redirected to https://example.net.
+3. Now hit https://blog.example.com and you should be redirected to https://newblog.example.net.
 
 ```
     # Check TXT record
-    dig +short TXT _srd.example.com
+    dig +short TXT _srd.blog.example.com
 
     # Test redirect (look for Location header)
-    curl -I https://example.com
+    curl -I https://blog.example.com
 ```
 
-Now requests to https://example.com will redirect to https://example.net.
+Now requests to https://blog.example.com will redirect to https://newblog.example.net.
 
-Note: Subdomains are supported in the same way. For example, to redirect blog.example.com, configure:
+Note: root domains are supported in the same way. For example, to redirect example.com, configure:
 
 ```
-    blog.example.com.   IN A     34.56.76.181
-    _srd.blog.example.com.   IN TXT   "v=srd1; dest=https://newblog.example.net"
+    example.com.   IN A     34.56.76.181
+    _srd.example.com.   IN TXT   "v=srd1; dest=https://hello.example.net"
 ```
 
 ## The `_srd` record format
@@ -53,6 +53,7 @@ Examples:
 
 ```
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net"
+    _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net/hello/world"
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; code=301"
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; route=preserve"
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; route=preserve; code=307"
@@ -72,21 +73,23 @@ Examples:
 - **Redirect loop** → Make sure dest isn’t pointing back to the same host.
 - **Behind a proxy/CDN** → Verify it forwards to SRD unmodified and the client hits SRD for example.com.
 
-## Running SRD
+## Using SRD
 
 ### Hosted for you
 
-SRD provides a hosted service for you to use with a static IP, free of charge. You can use the hosted SRD by pointing your domain at the **SRD service IP**: `34.56.76.181`, or by using a CNAME with content `in.srd.twopow.com`.
+SRD provides a hosted service for you to use, free of charge. You can use the hosted SRD by pointing your domain at the **SRD Service CNAME**: `in.srd.sh`, or the **SRD Service Static IPv4**: `34.56.76.181`.
 
-Use the free hosted SRD with the static IPv4: 34.56.76.181. Point your A record(s) at that IP and add the corresponding `_srd.<host>` TXT record. No accounts or control panel - DNS is the source of truth.
+Using the hosted SRD Service is as simple as configuring your records and the corresponding `_srd.<host>` TXT record. No accounts or control panel - DNS is the source of truth.
 
-Alternatively, you can use a CNAME record pointing to `in.srd.twopow.com`:
+| Record | Value          | Notes                                                             |
+|--------|----------------|-------------------------------------------------------------------|
+| CNAME  | `in.srd.sh`    | use for subdomains or root domains with CNAME Flattening support. |
+| A      | `34.56.76.181` | use for root domains.                                             |
 
 ```
-sub.domain.example.com.   IN CNAME   in.srd.twopow.com
+blog.example.com.        IN CNAME   in.srd.sh
+_srd.blog.example.com.   IN TXT     "v=srd1; dest=https://newblog.example.net"
 ```
-
-If you later self‑host, simply change the A record; your TXT‑driven redirects remain the same.
 
 ### Deploy your own
 
