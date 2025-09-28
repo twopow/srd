@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,32 +46,64 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 
 		l.Msg("redirecting")
 
-		// url.Parse expects a scheme
-		if !strings.Contains(value.To, "://") {
-			value.To = "http://" + value.To
-		}
-
-		to, err := url.Parse(value.To)
+		to, err := constructTo(r, value)
 		if err != nil {
-			l.Err(err).Msg("failed to parse to url")
-
+			l.Err(err).Msg("failed to construct to")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		}
-
-		if value.PreserveRoute {
-			to.Path = r.URL.Path
-			to.RawQuery = r.URL.RawQuery
 		}
 
 		if value.Code == 0 {
 			value.Code = http.StatusFound
 		}
 
-		// note, the full destination url is not logged
-		// because it may contain sensitive information
+		setReferer(w, r, value)
+
+		// note, the full urls are not logged
+		// as they may contain sensitive information
 
 		dest := to.String()
 		http.Redirect(w, r, dest, value.Code)
 	}
+}
+
+func constructTo(r *http.Request, value resolverP.RR) (*url.URL, error) {
+	// url.Parse expects a scheme
+	if !strings.Contains(value.To, "://") {
+		value.To = "http://" + value.To
+	}
+
+	to, err := url.Parse(value.To)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse to url: %w", err)
+	}
+
+	if value.PreserveRoute {
+		to.Path = r.URL.Path
+		to.RawQuery = r.URL.RawQuery
+	}
+
+	return to, nil
+}
+
+func setReferer(w http.ResponseWriter, r *http.Request, value resolverP.RR) {
+	// none
+	if value.RefererPolicy == resolverP.RefererPolicyNone {
+		return
+	}
+
+	// host
+	if value.RefererPolicy == resolverP.RefererPolicyHost {
+		w.Header().Set("Referer", r.Host)
+		return
+	}
+
+	// full
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+
+	referer := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.RequestURI())
+	w.Header().Set("Referer", referer)
 }

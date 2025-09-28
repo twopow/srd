@@ -11,11 +11,12 @@ import (
 )
 
 type TestData struct {
-	Hostname       string
-	Path           string
-	ExpectedBody   string
-	ExpectedStatus int
-	ExpectedTo     string
+	Hostname        string
+	Path            string
+	ExpectedBody    string
+	ExpectedStatus  int
+	ExpectedTo      string
+	ExpectedHeaders map[string]string
 }
 
 func doResolverTest(t *testing.T, test TestData) {
@@ -54,6 +55,14 @@ func doResolverTest(t *testing.T, test TestData) {
 
 	if rr.Header().Get("x-request-id") == "" {
 		t.Fatalf("handler returned no x-request-id")
+	}
+
+	for key, value := range test.ExpectedHeaders {
+		actual := rr.Header().Get(key)
+		if actual != value {
+			t.Fatalf("handler returned unexpected header: got %v want %v",
+				actual, value)
+		}
 	}
 }
 
@@ -143,5 +152,53 @@ func TestResolveHandler_NoHostBaseRedirect(t *testing.T) {
 		Path:           "/",
 		ExpectedStatus: http.StatusFound,
 		ExpectedTo:     "https://github.com/twopow/srd",
+	})
+}
+
+func TestResolveHandler_RefererPolicy_DefaultIsHost(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "success-referer-policy-default.test",
+		Path:           "/route?key=value",
+		ExpectedStatus: http.StatusFound,
+		ExpectedTo:     "https://to.test/path?query=string",
+		ExpectedHeaders: map[string]string{
+			"Referer": "success-referer-policy-default.test",
+		},
+	})
+}
+
+func TestResolveHandler_RefererPolicy_None(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "success-referer-policy-none.test",
+		Path:           "/route?key=value",
+		ExpectedStatus: http.StatusFound,
+		ExpectedTo:     "https://to.test/path?query=string",
+		ExpectedHeaders: map[string]string{
+			"Referer": "",
+		},
+	})
+}
+
+func TestResolveHandler_RefererPolicy_Host(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "success-referer-policy-host.test",
+		Path:           "/route?key=value",
+		ExpectedStatus: http.StatusFound,
+		ExpectedTo:     "https://to.test/path?query=string",
+		ExpectedHeaders: map[string]string{
+			"Referer": "success-referer-policy-host.test",
+		},
+	})
+}
+
+func TestResolveHandler_RefererPolicy_Full(t *testing.T) {
+	doResolverTest(t, TestData{
+		Hostname:       "success-referer-policy-full.test",
+		Path:           "/route?key=value",
+		ExpectedStatus: http.StatusFound,
+		ExpectedTo:     "https://to.test/path?query=string",
+		ExpectedHeaders: map[string]string{
+			"Referer": "http://success-referer-policy-full.test/route?key=value",
+		},
 	})
 }
