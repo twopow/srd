@@ -39,17 +39,37 @@ type Resolver struct {
 
 var ErrLoop = errors.New("loop detected")
 
+type RefererPolicy int
+
+const (
+	// return no referer header
+	RefererPolicyNone RefererPolicy = iota
+
+	// return a referer header with the hostname
+	RefererPolicyHost
+
+	// return a referer header with the full url
+	RefererPolicyFull
+)
+
+func (r RefererPolicy) String() string {
+	return []string{"none", "host", "full"}[r]
+}
+
+var DefaultRefererPolicy = RefererPolicyHost
+
 // RR is a Redirect Record
 type RR struct {
 	Hostname      string
 	To            string
 	PreserveRoute bool
+	RefererPolicy RefererPolicy
 	Code          int
 	NotFound      bool
 	Version       string
 }
 
-var RRNotFound = RR{NotFound: true, Code: http.StatusNotFound}
+var RRNotFound = RR{NotFound: true, RefererPolicy: RefererPolicyNone, Code: http.StatusNotFound}
 
 func Init(_cfg ResolverConfig, _cache cacheM.CacheProvider) {
 	DefaultResolver = &Resolver{
@@ -70,11 +90,12 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 
 	if cached, ok := r.getCached(l, hostname); ok {
 		l.Info().WithMap(map[string]any{
-			"to":            cached.To,
-			"cached":        true,
-			"elapsed":       time.Since(stime).Milliseconds(),
-			"preserveRoute": cached.PreserveRoute,
-			"code":          cached.Code,
+			"to":             cached.To,
+			"cached":         true,
+			"elapsed":        time.Since(stime).Milliseconds(),
+			"preserveRoute":  cached.PreserveRoute,
+			"code":           cached.Code,
+			"referrerPolicy": cached.RefererPolicy.String(),
 		}).Msg("resolved host")
 
 		return cached, nil
@@ -89,6 +110,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		"to":            record.To,
 		"elapsed":       time.Since(stime).Milliseconds(),
 		"preserveRoute": record.PreserveRoute,
+		"refererPolicy": record.RefererPolicy.String(),
 		"code":          record.Code,
 	})
 
@@ -140,8 +162,9 @@ func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err err
 
 func parseRecord(record string) (RR, error) {
 	rr := RR{
-		NotFound: false,
-		Code:     http.StatusFound,
+		NotFound:      false,
+		Code:          http.StatusFound,
+		RefererPolicy: DefaultRefererPolicy,
 	}
 
 	// remove bounding quotes if they exist
@@ -178,6 +201,10 @@ func parseRecord(record string) (RR, error) {
 			if value == "preserve" {
 				rr.PreserveRoute = true
 			}
+		case "referer":
+			rr.RefererPolicy = parseRefererPolicy(value)
+		case "referrer":
+			rr.RefererPolicy = parseRefererPolicy(value)
 		}
 	}
 
@@ -261,5 +288,18 @@ func parseCode(code string) int {
 		return http.StatusPermanentRedirect
 	default:
 		return http.StatusFound
+	}
+}
+
+func parseRefererPolicy(policy string) RefererPolicy {
+	switch policy {
+	case "none":
+		return RefererPolicyNone
+	case "host":
+		return RefererPolicyHost
+	case "full":
+		return RefererPolicyFull
+	default:
+		return DefaultRefererPolicy
 	}
 }
