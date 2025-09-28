@@ -65,7 +65,7 @@ Where `<target-domain>` is the fully qualified domain name that will receive HTT
 
 SRD records use the following format:
 ```
-"v=srd1; dest=<destination-url>; [code=<status-code>]; [route=<route-behavior>]"
+"v=srd1; dest=<destination-url>; [code=<status-code>]; [route=<route-behavior>]; [referer=<referer-behavior>]"
 ```
 
 Fields are semicolon-separated and the following fields are supported:
@@ -104,6 +104,17 @@ The `route` field controls how the original URL path and query string are handle
 - **Required**: No
 - **Description**: When set to `preserve`, the original URL path and query string replace the destination URL path and query string
 
+#### 3.2.5 Referer Field
+
+The `referer` field controls how the Referer header is handled in the redirect response:
+- **Allowed values**: `none`, `host`, `full`
+- **Default**: `host`
+- **Required**: No
+- **Description**:
+  - `none`: No Referer header is included in the redirect response
+  - `host`: Only the hostname of the referring URL is included in the Referer header
+  - `full`: The full referring URL is included in the Referer header
+
 ### 3.3 Example SRD Records
 
 ```
@@ -121,6 +132,15 @@ _srd.legacy.example.com.   IN TXT   "v=srd1; dest=https://example.com; code=308;
 
 # Temporary redirect (307 status code)
 _srd.temp.example.com.   IN TXT   "v=srd1; dest=https://temp.example.net; code=307"
+
+# Redirect with no referer header
+_srd.private.example.com.   IN TXT   "v=srd1; dest=https://example.net; referer=none"
+
+# Redirect with full referer header
+_srd.tracking.example.com.   IN TXT   "v=srd1; dest=https://example.net; referer=full"
+
+# Complete example with all fields
+_srd.complete.example.com.   IN TXT   "v=srd1; dest=https://example.net; code=301; route=preserve; referer=full"
 ```
 
 ## 4. HTTP Behavior
@@ -156,19 +176,38 @@ When `route=preserve` is specified in the SRD record:
 - The original URL path and query string replace the destination URL path and query string
 - Example: Request to `https://old.example.com/path?query=value` with `dest=https://new.example.com; route=preserve` redirects to `https://new.example.com/path?query=value`
 
+#### 4.2.3 Referer Header Behavior
+
+The `referer` field controls how the Referer header is included in the redirect response:
+
+- **`referer=none`**: No Referer header is included in the response
+- **`referer=host`** (default): The Referer header contains only the hostname of the referring URL
+  - Example: Request from `https://example.com/page` results in `Referer: example.com`
+- **`referer=full`**: The Referer header contains the complete referring URL
+  - Example: Request from `https://example.com/page?param=value` results in `Referer: example.com/page?param=value`
+
 Example responses:
 
-Basic redirect (default 302):
+Basic redirect (default 302, default referer=host):
 ```
 HTTP/1.1 302 Found
 Location: https://example.net
+Referer: example.com
 Cache-Control: max-age=300
 ```
 
-Permanent redirect with path preservation:
+Permanent redirect with path preservation and no referer:
 ```
 HTTP/1.1 308 Permanent Redirect
 Location: https://example.net/path?query=value
+Cache-Control: max-age=300
+```
+
+Redirect with full referer header:
+```
+HTTP/1.1 302 Found
+Location: https://example.net
+Referer: example.com/page?param=value
 Cache-Control: max-age=300
 ```
 
@@ -251,9 +290,9 @@ SRD can be deployed as a standalone HTTP service with the following characterist
 - Implement connection pooling for DNS queries
 - Consider DNS-over-HTTPS for enhanced security
 
-## 9. Examples
+## 8. Examples
 
-### 9.1 Basic Redirect Setup
+### 8.1 Basic Redirect Setup
 
 1. Configure DNS A record:
    ```
@@ -271,11 +310,11 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    # Should return: Location: https://example.net
    ```
 
-### 9.2 Subdomain Redirect
+### 8.2 Subdomain Redirect
 
-1. Configure subdomain A record:
+1. Configure subdomain CNAME record:
    ```
-   blog.example.com.   IN A   34.56.76.181
+   blog.example.com.   IN CNAME   in.srd.twopow.com
    ```
 
 2. Configure SRD record:
@@ -283,11 +322,11 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    _srd.blog.example.com.   IN TXT   "v=srd1; dest=https://newblog.example.net"
    ```
 
-### 9.3 Permanent Redirect with Path Preservation
+### 8.3 Permanent Redirect with Path Preservation
 
-1. Configure domain A record:
+1. Configure domain CNAME record:
    ```
-   old.example.com.   IN A   34.56.76.181
+   old.example.com.   IN CNAME   in.srd.twopow.com
    ```
 
 2. Configure SRD record with permanent redirect and path preservation:
@@ -300,6 +339,37 @@ SRD can be deployed as a standalone HTTP service with the following characterist
    curl -I https://old.example.com/path/to/page?param=value
    # Should return: Location: https://new.example.com/path/to/page?param=value
    # Status: 301 Moved Permanently
+   ```
+
+### 8.4 Referer Header Control
+
+1. Configure domain CNAME record:
+   ```
+   private.example.com.   IN CNAME   in.srd.twopow.com
+   ```
+
+2. Configure SRD record with no referer header:
+   ```
+   _srd.private.example.com.   IN TXT   "v=srd1; dest=https://private.example.net; referer=none"
+   ```
+
+3. Test the redirect:
+   ```bash
+   curl -I https://private.example.com
+   # Should return: Location: https://private.example.net
+   # Should NOT include: Referer header
+   ```
+
+4. Configure SRD record with full referer header:
+   ```
+   _srd.tracking.example.com.   IN TXT   "v=srd1; dest=https://tracking.example.net; referer=full"
+   ```
+
+5. Test the redirect:
+   ```bash
+   curl -I https://tracking.example.com/page?source=email
+   # Should return: Location: https://tracking.example.net
+   # Should include: Referer: tracking.example.com/page?source=email
    ```
 
 ## 9. Future Considerations

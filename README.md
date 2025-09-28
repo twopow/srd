@@ -47,6 +47,7 @@ The `_srd` record is a TXT record that contains the redirect configuration. Fiel
 | dest | The destination URL for the redirect | Yes |
 | code | The HTTP status code for the redirect. Allowed values are 301, 302, 307, 308. Default is 302. | No |
 | route | set to `preserve` to preserve the original URL Path and Query String in the redirect | No |
+| referer | set to `none`, `host`, or `full` to control the Referer header for the redirect. `full` is the full referring URL, `host` is the hostname of the referring URL, and `none` is no Referer header. Default is `host`. | No |
 
 Examples:
 
@@ -55,6 +56,7 @@ Examples:
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; code=301"
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; route=preserve"
     _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; route=preserve; code=307"
+    _srd.example.com.   IN TXT   "v=srd1; dest=https://example.net; route=preserve; referer=none"
 ```
 
 ## How it works
