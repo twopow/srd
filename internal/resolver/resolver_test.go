@@ -11,6 +11,10 @@ type TestData struct {
 	ErrorString string
 }
 
+// TODO: resolver tests beyond record parsing.
+// [ ] loop detection
+// [ ] mock network resolver (lookupTXT)
+
 func doParseRecordTest(t *testing.T, test TestData) {
 	got, err := parseRecord(test.Record)
 

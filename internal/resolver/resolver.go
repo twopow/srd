@@ -233,8 +233,10 @@ func (r *Resolver) detectLoop(l *log.Logger, to string) error {
 
 	toHost := url.Host
 
-	_, ok := r.getCached(l, toHost)
-	if !ok {
+	rr, ok := r.getCached(l, toHost)
+
+	// if the record does not exist or is not valid, we are not in a loop
+	if !ok || rr.NotFound {
 		return nil
 	}
 

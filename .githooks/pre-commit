@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euf
+
+checks=("**DONT.COMMIT.IT**")
+
+git diff --cached --name-status | while read flag file; do
+	if [ "$flag" == 'D' ]; then continue; fi
+	if [ ! -f "$file" ]; then continue; fi
+
+	# skip this file itself
+	if [ "$file" == '.githooks/pre-commit' ]; then continue; fi
+
+	for word in "${checks[@]}"; do
+		if git diff --cached -U0 "$file" | grep -EFq "$word"; then
+			echo "ERROR: Disallowed expression \"${word}\" in file: ${file}" >&2
+			exit 1
+		fi
+	done
+done
