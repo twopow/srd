@@ -80,6 +80,10 @@ func Init(_cfg ResolverConfig, _cache cacheM.CacheProvider) {
 
 func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	stime := time.Now()
+
+	hostname = strings.ToLower(hostname)
+	hostname = strings.TrimSpace(hostname)
+
 	l := log.With("hostname", hostname)
 
 	// if hostname is ip, return the default redirect
@@ -114,7 +118,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		"code":          record.Code,
 	})
 
-	err = r.detectLoop(l, record.To)
+	err = r.detectLoop(l, hostname, record.To)
 	if err != nil {
 		if errors.Is(err, ErrLoop) {
 			l.Warn().Msg("loop detected")
@@ -214,6 +218,9 @@ func parseRecord(record string) (RR, error) {
 
 	if rr.To == "" {
 		return RRNotFound, fmt.Errorf("no destination found")
+	} else {
+		rr.To = strings.ToLower(rr.To)
+		rr.To = strings.TrimSpace(rr.To)
 	}
 
 	if _, err := url.Parse(rr.To); err != nil {
@@ -225,13 +232,17 @@ func parseRecord(record string) (RR, error) {
 
 // detectLoop checks if the to host is already in the cache
 // if it is, it returns true, otherwise it returns false
-func (r *Resolver) detectLoop(l *log.Logger, to string) error {
+func (r *Resolver) detectLoop(l *log.Logger, hostname, to string) error {
 	url, err := url.Parse(to)
 	if err != nil {
 		return err
 	}
 
 	toHost := url.Host
+
+	if toHost == hostname {
+		return ErrLoop
+	}
 
 	rr, ok := r.getCached(l, toHost)
 
