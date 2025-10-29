@@ -45,19 +45,32 @@ func New(cfg CacheConfig) CacheProvider {
 // Get retrieves a value from the cache by key
 func (c *Cache) Get(key string) (interface{}, bool) {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	item, exists := c.items[key]
+	c.mu.RUnlock()
+
 	if !exists {
 		return nil, false
 	}
 
-	// Check if item has expired
+	// bail early if the item has already expired
 	if time.Now().After(item.expiration) {
 		return nil, false
 	}
 
-	// reset the expiration time
+	// upgrade to a write lock only when we need to bump the ttl
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	item, exists = c.items[key]
+	if !exists {
+		return nil, false
+	}
+
+	// item might have been updated or expired while waiting for the write lock
+	if time.Now().After(item.expiration) {
+		return nil, false
+	}
+
 	item.expiration = time.Now().Add(c.config.TTL)
 	c.items[key] = item
 
