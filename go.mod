@@ -1,4 +1,4 @@
-module srd
+module github.com/twopow/srd
 
 go 1.24.0
 

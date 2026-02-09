@@ -1,11 +1,12 @@
-package server
+package handlers
 
 import (
+	"context"
 	"net/http"
 
-	"srd/internal/log"
-	resolverP "srd/internal/resolver"
-	"srd/internal/util"
+	"github.com/twopow/srd/internal/log"
+	"github.com/twopow/srd/internal/util"
+	resolverP "github.com/twopow/srd/resolver"
 )
 
 func CaddyHelperHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
@@ -25,7 +26,8 @@ func CaddyHelperHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 			return
 		}
 
-		value, err := resolver.Resolve(domain)
+		ctx := context.Background()
+		value, err := resolver.Resolve(ctx, domain)
 		if err == nil && !value.NotFound {
 			l.Debug().Msg("caddy domain check: ok")
 			w.WriteHeader(http.StatusOK)

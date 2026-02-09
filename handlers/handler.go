@@ -1,27 +1,41 @@
-package server
+package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
-	"srd/internal/log"
-	resolverP "srd/internal/resolver"
-	"srd/internal/util"
+	"github.com/twopow/srd/internal/log"
+	"github.com/twopow/srd/internal/util"
+	resolverP "github.com/twopow/srd/resolver"
 )
 
 // Define a handler function for all routes
 func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout := time.Duration(2 * time.Second)
+		ctx, cancel := context.WithTimeoutCause(r.Context(), timeout, errors.New("timeout"))
+		defer cancel()
+
 		rid := util.UUID7().String()
 		w.Header().Set("x-request-id", rid)
 
-		value, err := resolver.Resolve(r.Host)
+		ctx = context.WithValue(ctx, resolverP.ResolverContextKey("request_id"), rid)
+
+		value, err := resolver.Resolve(ctx, r.Host)
 		if err != nil {
 			if errors.Is(err, resolverP.ErrLoop) {
 				http.Error(w, "loop detected", http.StatusBadRequest)
+				return
+			}
+
+			// Context timeouts/cancellations are distinguishable:
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+				http.Error(w, "timeout", http.StatusInternalServerError)
 				return
 			}
 

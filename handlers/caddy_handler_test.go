@@ -1,4 +1,4 @@
-package server
+package handlers
 
 import (
 	"net/http"
@@ -6,8 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"srd/internal/cache"
-	"srd/internal/resolver"
+	"github.com/twopow/srd/resolver"
 )
 
 type CaddyHandlerTestData struct {
@@ -21,8 +20,6 @@ func doCaddyHandlerTest(t *testing.T, test CaddyHandlerTestData) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	resolver.Init(resolver.ResolverConfig{}, cache.Mock())
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(CaddyHelperHandler(resolver.Mock()))

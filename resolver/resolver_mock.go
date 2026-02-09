@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
@@ -86,7 +87,7 @@ func Mock() ResolverProvider {
 	return &MockResolver{}
 }
 
-func (r *MockResolver) Resolve(hostname string) (RR, error) {
+func (r *MockResolver) Resolve(ctx context.Context, hostname string) (RR, error) {
 	if hostname == MockErrorHost {
 		return RR{}, fmt.Errorf("error")
 	}
