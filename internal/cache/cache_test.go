@@ -11,7 +11,10 @@ func TestCache_SetAndGet(t *testing.T) {
 		CleanupInterval: time.Second * 10,
 	}
 
-	cache := New(cfg)
+	cache, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tests := []struct {
 		name     string
@@ -64,7 +67,10 @@ func TestCache_GetExpiredCleanup(t *testing.T) {
 		CleanupInterval: time.Second * 10,
 	}
 
-	cache := New(cfg)
+	cache, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Set a value
 	cache.Set("test-key", "test-value")
@@ -85,7 +91,10 @@ func TestCache_GetNonExistent(t *testing.T) {
 		CleanupInterval: time.Second * 10,
 	}
 
-	cache := New(cfg)
+	cache, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	_, found := cache.Get("non-existent-key")
 	if found {

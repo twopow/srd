@@ -2,7 +2,8 @@ package util
 
 import (
 	"regexp"
-	"srd/internal/log"
+
+	"github.com/twopow/srd/internal/log"
 
 	"github.com/google/uuid"
 )

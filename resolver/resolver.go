@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -9,34 +10,55 @@ import (
 	"strings"
 	"time"
 
-	"srd/internal/log"
-	"srd/internal/util"
+	"github.com/twopow/srd/internal/log"
+	"github.com/twopow/srd/internal/util"
 
-	cacheM "srd/internal/cache"
+	cache "github.com/twopow/srd/internal/cache"
 )
 
 const (
+	// VERSION is the version of the SRD record format
 	VERSION = "srd1"
 )
 
+type ResolverContextKey string
+
 type ResolverConfig struct {
-	RecordPrefix       string `help:"Record prefix." default:"_srd"`
-	NoHostBaseRedirect string `help:"No host base redirect." default:"https://github.com/twopow/srd"`
+	// RecordingPrefix is the DNS record to use, e.g. "_srd"
+	RecordPrefix string
+
+	// NoHostBaseRedirect is the URL to redirect to when
+	// resolving a request and we fail to find a record
+	NoHostBaseRedirect string
+
+	// TTL is the cache TTL
+	TTL time.Duration
+
+	// CleanupInterval is how often to cleanup the cache
+	CleanupInterval time.Duration
 }
 
-var (
-	DefaultResolver ResolverProvider
-)
-
 type ResolverProvider interface {
-	Resolve(hostname string) (RR, error)
+	Resolve(ctx context.Context, hostname string) (RR, error)
 }
 
 type Resolver struct {
-	cache cacheM.CacheProvider
+	cache cache.CacheProvider
 	cfg   ResolverConfig
 }
 
+// RR is a Redirect Record
+type RR struct {
+	Hostname      string
+	To            string
+	PreserveRoute bool
+	RefererPolicy RefererPolicy
+	Code          int
+	NotFound      bool
+	Version       string
+}
+
+var RRNotFound = RR{NotFound: true, RefererPolicy: RefererPolicyNone, Code: http.StatusNotFound}
 var ErrLoop = errors.New("loop detected")
 
 type RefererPolicy int
@@ -58,27 +80,25 @@ func (r RefererPolicy) String() string {
 
 var DefaultRefererPolicy = RefererPolicyHost
 
-// RR is a Redirect Record
-type RR struct {
-	Hostname      string
-	To            string
-	PreserveRoute bool
-	RefererPolicy RefererPolicy
-	Code          int
-	NotFound      bool
-	Version       string
-}
+func New(cfg ResolverConfig) (ResolverProvider, error) {
+	c, err := cache.New(cache.CacheConfig{
+		TTL:             cfg.TTL,
+		CleanupInterval: cfg.CleanupInterval,
+	})
 
-var RRNotFound = RR{NotFound: true, RefererPolicy: RefererPolicyNone, Code: http.StatusNotFound}
-
-func Init(_cfg ResolverConfig, _cache cacheM.CacheProvider) {
-	DefaultResolver = &Resolver{
-		cache: _cache,
-		cfg:   _cfg,
+	if err != nil {
+		return nil, fmt.Errorf("failed to init resolver: %w", err)
 	}
+
+	return &Resolver{
+		cfg:   cfg,
+		cache: c,
+	}, nil
 }
 
-func (r *Resolver) Resolve(hostname string) (record RR, err error) {
+func (r *Resolver) Resolve(ctx context.Context, hostname string) (record RR, err error) {
+	ctx = context.WithValue(ctx, ResolverContextKey("hostname"), hostname)
+
 	stime := time.Now()
 
 	hostname = strings.ToLower(hostname)
@@ -105,7 +125,7 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 		return cached, nil
 	}
 
-	record, err = r.doResolve(l, hostname)
+	record, err = r.doResolve(ctx, l, hostname)
 	if err != nil {
 		return record, err
 	}
@@ -135,9 +155,9 @@ func (r *Resolver) Resolve(hostname string) (record RR, err error) {
 	return record, nil
 }
 
-func (r *Resolver) doResolve(l *log.Logger, hostname string) (record RR, err error) {
+func (r *Resolver) doResolve(ctx context.Context, l *log.Logger, hostname string) (record RR, err error) {
 	record.NotFound = true
-	txtRecords, err := r.resolveTXT(hostname)
+	txtRecords, err := r.resolveTXT(ctx, hostname)
 
 	if err != nil {
 		l.Error().Err(err).Msg("failed to resolve host")
@@ -256,10 +276,10 @@ func (r *Resolver) detectLoop(l *log.Logger, hostname, to string) error {
 
 // resolveTXT takes a hostname with prefix and returns its TXT records.
 // Returns an error if the lookup fails
-func (r *Resolver) resolveTXT(hostname string) ([]string, error) {
+func (r *Resolver) resolveTXT(ctx context.Context, hostname string) ([]string, error) {
 	hostname = fmt.Sprintf("%s.%s", r.cfg.RecordPrefix, hostname)
 
-	records, err := net.LookupTXT(hostname)
+	records, err := net.DefaultResolver.LookupTXT(ctx, hostname)
 
 	if err != nil {
 		if dnsErr, ok := err.(*net.DNSError); ok && dnsErr.IsNotFound {

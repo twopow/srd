@@ -4,12 +4,20 @@ import (
 	"sync"
 	"time"
 
-	"srd/internal/log"
+	"github.com/twopow/srd/internal/log"
 )
 
 type CacheConfig struct {
-	TTL             time.Duration `help:"Cache TTL in seconds." default:"300s"`
-	CleanupInterval time.Duration `help:"Cache cleanup interval in seconds." default:"600s"`
+	// TTL is the cache TTL
+	TTL time.Duration
+
+	// CleanupInterval is how often to cleanup the cache
+	CleanupInterval time.Duration
+}
+
+var DefaultCacheConfig = CacheConfig{
+	TTL:             time.Second * 300, // 5 minutes
+	CleanupInterval: time.Second * 900, // 15 minutes
 }
 
 type CacheProvider interface {
@@ -30,7 +38,7 @@ type Cache struct {
 }
 
 // New creates a new Cache instance
-func New(cfg CacheConfig) CacheProvider {
+func New(cfg CacheConfig) (CacheProvider, error) {
 	c := &Cache{
 		items:  make(map[string]item),
 		config: cfg,
@@ -39,7 +47,7 @@ func New(cfg CacheConfig) CacheProvider {
 	// Start cleanup goroutine
 	go c.cleanupTimer()
 
-	return c
+	return c, nil
 }
 
 // Get retrieves a value from the cache by key

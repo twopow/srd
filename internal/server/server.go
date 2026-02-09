@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"srd/internal/log"
-	"srd/internal/resolver"
+	"github.com/twopow/srd/handlers"
+	"github.com/twopow/srd/resolver"
+
+	"github.com/twopow/srd/internal/log"
 )
 
 type ServerConfig struct {
@@ -20,17 +22,17 @@ type CaddyHelperConfig struct {
 	Port    int    `help:"Port for the Caddy helper server." default:"8081"`
 }
 
-func Start(cfg ServerConfig) error {
+func Start(cfg ServerConfig, rp resolver.ResolverProvider) error {
 	// Start both servers concurrently
 	go func() {
-		if err := startServer(cfg); err != nil {
+		if err := startServer(cfg, rp); err != nil {
 			log.Fatal().Err(err).Msg("failed to start main server")
 		}
 	}()
 
 	if cfg.CaddyHelper.Enabled {
 		go func() {
-			if err := startCaddyHelper(cfg.CaddyHelper); err != nil {
+			if err := startCaddyHelper(cfg.CaddyHelper, rp); err != nil {
 				log.Fatal().Err(err).Msg("failed to start caddy helper server")
 			}
 		}()
@@ -41,11 +43,11 @@ func Start(cfg ServerConfig) error {
 }
 
 // StartServer starts an HTTP server on the specified host and port
-func startServer(cfg ServerConfig) error {
+func startServer(cfg ServerConfig, rp resolver.ResolverProvider) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	log.Info().With("addr", addr).Msg("booting server")
 
-	http.HandleFunc("/", ResolveHandler(resolver.DefaultResolver))
+	http.HandleFunc("/", handlers.ResolveHandler(rp))
 
 	return http.ListenAndServe(addr, nil)
 }
@@ -53,11 +55,11 @@ func startServer(cfg ServerConfig) error {
 // StartCaddyHelper starts a Caddy helper server on the specified host and port
 // CadddyHelper is used to check if a cert should be issued for a given hostname
 // ref: https://caddyserver.com/docs/caddyfile/options#on-demand-tls
-func startCaddyHelper(cfg CaddyHelperConfig) error {
+func startCaddyHelper(cfg CaddyHelperConfig, rp resolver.ResolverProvider) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	log.Info().With("addr", addr).Msg("booting caddy helper")
 
-	http.HandleFunc("/ask", CaddyHelperHandler(resolver.DefaultResolver))
+	http.HandleFunc("/ask", handlers.CaddyHelperHandler(rp))
 
 	return http.ListenAndServe(addr, nil)
 }

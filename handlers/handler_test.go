@@ -1,4 +1,4 @@
-package server
+package handlers
 
 import (
 	"net/http"
@@ -6,8 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"srd/internal/cache"
-	"srd/internal/resolver"
+	"github.com/twopow/srd/resolver"
 )
 
 type TestData struct {
@@ -24,8 +23,6 @@ func doResolverTest(t *testing.T, test TestData) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	resolver.Init(resolver.ResolverConfig{}, cache.Mock())
 
 	req.Host = test.Hostname
 	rr := httptest.NewRecorder()
