@@ -6,10 +6,10 @@ import (
 
 	"github.com/twopow/srd/internal/log"
 	"github.com/twopow/srd/internal/util"
-	resolverP "github.com/twopow/srd/resolver"
+	"github.com/twopow/srd/resolver"
 )
 
-func CaddyHelperHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
+func CaddyHelperHandler(resv resolver.ResolverProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("domain")
 		if domain == "" {
@@ -27,7 +27,7 @@ func CaddyHelperHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 		}
 
 		ctx := context.Background()
-		value, err := resolver.Resolve(ctx, domain)
+		value, err := resv.Resolve(ctx, domain)
 		if err == nil && !value.NotFound {
 			l.Debug().Msg("caddy domain check: ok")
 			w.WriteHeader(http.StatusOK)
