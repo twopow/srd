@@ -3,6 +3,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -99,4 +100,8 @@ func (r *MockResolver) Resolve(ctx context.Context, hostname string) (RR, error)
 	}
 
 	return RR{}, fmt.Errorf("not found")
+}
+
+func (r *MockResolver) Logger() *slog.Logger {
+	return slog.Default()
 }

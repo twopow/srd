@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/twopow/srd/internal/log"
 	"github.com/twopow/srd/internal/util"
 	resolverP "github.com/twopow/srd/resolver"
 )
 
 // Define a handler function for all routes
 func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
+	log := resolver.Logger()
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout := time.Duration(2 * time.Second)
 		ctx, cancel := context.WithTimeoutCause(r.Context(), timeout, errors.New("timeout"))
@@ -43,26 +44,21 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 			return
 		}
 
-		l := log.Info().
-			WithMap(map[string]any{
-				"request": rid,
-				"from":    r.Host,
-				"to":      value.To,
-			})
+		l := log.With("request", rid, "from", r.Host, "to", value.To)
 
 		if value.NotFound {
-			l.Msg("not found")
+			l.Info("not found")
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 
-		l.Msg("redirecting")
+		l.Info("redirecting")
 
 		to, err := constructTo(r, value)
 		if err != nil {
-			l.Err(err).Msg("failed to construct to")
+			l.Error("failed to construct to", "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
