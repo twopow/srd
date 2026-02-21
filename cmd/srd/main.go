@@ -6,8 +6,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	kongyaml "github.com/alecthomas/kong-yaml"
+	"github.com/twopow/glog"
 
-	"github.com/twopow/srd/internal/log"
 	"github.com/twopow/srd/internal/server"
 	"github.com/twopow/srd/resolver"
 )
@@ -16,9 +16,13 @@ type Context struct {
 	Debug bool
 }
 
+type LogConfig struct {
+	Level string `help:"Log level." default:"info" enum:"debug,info,warn,error"`
+}
+
 type ServeCmd struct {
 	Server   server.ServerConfig `embed:"" prefix:"server."`
-	Log      log.LogConfig       `embed:"" prefix:"log."`
+	Log      LogConfig           `embed:"" prefix:"log."`
 	Resolver ResolverConfig      `embed:"" prefix:"resolver."`
 }
 
@@ -31,20 +35,21 @@ type ResolverConfig struct {
 }
 
 func (s *ServeCmd) Run(ctx *Context) error {
-	log.NewLogger(ctx.Debug, s.Log.Pretty)
+	glog.NewLogger(s.Log.Level)
 
 	rp, err := resolver.New(resolver.ResolverConfig{
 		RecordPrefix:       s.Resolver.RecordPrefix,
 		NoHostBaseRedirect: s.Resolver.NoHostBaseRedirect,
 		TTL:                s.Resolver.TTL,
 		CleanupInterval:    s.Resolver.CleanupInterval,
+		Logger:             glog.GetLogger(),
 	})
 
 	if err != nil {
 		return fmt.Errorf("failed to init resolver: %w", err)
 	}
 
-	server.Start(s.Server, rp)
+	server.Start(s.Server, rp, glog.GetLogger())
 
 	return nil
 }

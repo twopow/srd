@@ -2,12 +2,12 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/twopow/srd/handlers"
 	"github.com/twopow/srd/resolver"
-
-	"github.com/twopow/srd/internal/log"
 )
 
 type ServerConfig struct {
@@ -22,18 +22,24 @@ type CaddyHelperConfig struct {
 	Port    int    `help:"Port for the Caddy helper server." default:"8081"`
 }
 
-func Start(cfg ServerConfig, rp resolver.ResolverProvider) error {
+var log *slog.Logger
+
+func Start(cfg ServerConfig, rp resolver.ResolverProvider, logger *slog.Logger) error {
+	log = logger
+
 	// Start both servers concurrently
 	go func() {
 		if err := startServer(cfg, rp); err != nil {
-			log.Fatal().Err(err).Msg("failed to start main server")
+			log.Error("failed to start main server", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	if cfg.CaddyHelper.Enabled {
 		go func() {
 			if err := startCaddyHelper(cfg.CaddyHelper, rp); err != nil {
-				log.Fatal().Err(err).Msg("failed to start caddy helper server")
+				log.Error("failed to start caddy helper server", "error", err)
+				os.Exit(1)
 			}
 		}()
 	}
@@ -45,7 +51,7 @@ func Start(cfg ServerConfig, rp resolver.ResolverProvider) error {
 // StartServer starts an HTTP server on the specified host and port
 func startServer(cfg ServerConfig, rp resolver.ResolverProvider) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	log.Info().With("addr", addr).Msg("booting server")
+	log.Info("booting server", "addr", addr)
 
 	http.HandleFunc("/", handlers.ResolveHandler(rp))
 
@@ -57,7 +63,7 @@ func startServer(cfg ServerConfig, rp resolver.ResolverProvider) error {
 // ref: https://caddyserver.com/docs/caddyfile/options#on-demand-tls
 func startCaddyHelper(cfg CaddyHelperConfig, rp resolver.ResolverProvider) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	log.Info().With("addr", addr).Msg("booting caddy helper")
+	log.Info("booting caddy helper", "addr", addr)
 
 	http.HandleFunc("/ask", handlers.CaddyHelperHandler(rp))
 

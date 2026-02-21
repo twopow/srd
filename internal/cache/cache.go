@@ -1,10 +1,9 @@
 package cache
 
 import (
+	"log/slog"
 	"sync"
 	"time"
-
-	"github.com/twopow/srd/internal/log"
 )
 
 type CacheConfig struct {
@@ -13,6 +12,8 @@ type CacheConfig struct {
 
 	// CleanupInterval is how often to cleanup the cache
 	CleanupInterval time.Duration
+
+	Logger *slog.Logger
 }
 
 var DefaultCacheConfig = CacheConfig{
@@ -120,6 +121,6 @@ func (c *Cache) Cleanup() {
 	c.mu.Unlock()
 
 	if deleted > 0 {
-		log.Info().With("deleted", deleted).Msg("cache cleanup")
+		c.config.Logger.Info("cache cleanup", "deleted", deleted)
 	}
 }

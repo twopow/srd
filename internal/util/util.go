@@ -1,9 +1,9 @@
 package util
 
 import (
+	"fmt"
+	"log/slog"
 	"regexp"
-
-	"github.com/twopow/srd/internal/log"
 
 	"github.com/google/uuid"
 )
@@ -13,7 +13,8 @@ var IpRegex = regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?
 func UUID7() uuid.UUID {
 	u, err := uuid.NewV7()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to generate uuid")
+		slog.Error("failed to generate uuid", "error", err)
+		panic(fmt.Errorf("failed to generate uuid: %w", err))
 	}
 
 	return u

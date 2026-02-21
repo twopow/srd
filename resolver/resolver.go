@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/twopow/srd/internal/log"
 	"github.com/twopow/srd/internal/util"
 
 	cache "github.com/twopow/srd/internal/cache"
@@ -36,15 +36,20 @@ type ResolverConfig struct {
 
 	// CleanupInterval is how often to cleanup the cache
 	CleanupInterval time.Duration
+
+	// Logger is the logger to use
+	Logger *slog.Logger
 }
 
 type ResolverProvider interface {
 	Resolve(ctx context.Context, hostname string) (RR, error)
+	Logger() *slog.Logger
 }
 
 type Resolver struct {
-	cache cache.CacheProvider
-	cfg   ResolverConfig
+	logger *slog.Logger
+	cache  cache.CacheProvider
+	cfg    ResolverConfig
 }
 
 // RR is a Redirect Record
@@ -81,9 +86,14 @@ func (r RefererPolicy) String() string {
 var DefaultRefererPolicy = RefererPolicyHost
 
 func New(cfg ResolverConfig) (ResolverProvider, error) {
+	if cfg.Logger == nil {
+		return nil, fmt.Errorf("slog logger is required")
+	}
+
 	c, err := cache.New(cache.CacheConfig{
 		TTL:             cfg.TTL,
 		CleanupInterval: cfg.CleanupInterval,
+		Logger:          cfg.Logger,
 	})
 
 	if err != nil {
@@ -91,8 +101,9 @@ func New(cfg ResolverConfig) (ResolverProvider, error) {
 	}
 
 	return &Resolver{
-		cfg:   cfg,
-		cache: c,
+		cfg:    cfg,
+		cache:  c,
+		logger: cfg.Logger,
 	}, nil
 }
 
@@ -104,23 +115,23 @@ func (r *Resolver) Resolve(ctx context.Context, hostname string) (record RR, err
 	hostname = strings.ToLower(hostname)
 	hostname = strings.TrimSpace(hostname)
 
-	l := log.With("hostname", hostname)
+	l := r.logger.With("hostname", hostname)
 
 	// if hostname is ip, return the default redirect
 	if r.cfg.NoHostBaseRedirect != "" && util.IsIp(hostname) {
-		l.Info().Msg("no host base redirect")
+		l.Info("no host base redirect")
 		return RR{To: r.cfg.NoHostBaseRedirect}, nil
 	}
 
 	if cached, ok := r.getCached(l, hostname); ok {
-		l.Info().WithMap(map[string]any{
-			"to":             cached.To,
-			"cached":         true,
-			"elapsed":        time.Since(stime).Milliseconds(),
-			"preserveRoute":  cached.PreserveRoute,
-			"code":           cached.Code,
-			"referrerPolicy": cached.RefererPolicy.String(),
-		}).Msg("resolved host")
+		l.Info("resolved host",
+			"to", cached.To,
+			"cached", true,
+			"elapsed", time.Since(stime).Milliseconds(),
+			"preserveRoute", cached.PreserveRoute,
+			"code", cached.Code,
+			"referrerPolicy", cached.RefererPolicy.String(),
+		)
 
 		return cached, nil
 	}
@@ -130,48 +141,48 @@ func (r *Resolver) Resolve(ctx context.Context, hostname string) (record RR, err
 		return record, err
 	}
 
-	l = l.WithMap(map[string]any{
-		"to":            record.To,
-		"elapsed":       time.Since(stime).Milliseconds(),
-		"preserveRoute": record.PreserveRoute,
-		"refererPolicy": record.RefererPolicy.String(),
-		"code":          record.Code,
-	})
+	l = l.With(
+		"to", record.To,
+		"elapsed", time.Since(stime).Milliseconds(),
+		"preserveRoute", record.PreserveRoute,
+		"refererPolicy", record.RefererPolicy.String(),
+		"code", record.Code,
+	)
 
 	err = r.detectLoop(l, hostname, record.To)
 	if err != nil {
 		if errors.Is(err, ErrLoop) {
-			l.Warn().Msg("loop detected")
+			l.Warn("loop detected")
 			return record, ErrLoop
 		}
 
-		l.Error().Err(err).Msg("loop detection failed")
+		l.Error("loop detection failed", "error", err)
 		return record, fmt.Errorf("loop detection failed: %w", err)
 	}
 
-	l.Info().Msg("resolved host")
+	l.Info("resolved host")
 	r.cache.Set(hostname, record)
 
 	return record, nil
 }
 
-func (r *Resolver) doResolve(ctx context.Context, l *log.Logger, hostname string) (record RR, err error) {
+func (r *Resolver) doResolve(ctx context.Context, l *slog.Logger, hostname string) (record RR, err error) {
 	record.NotFound = true
 	txtRecords, err := r.resolveTXT(ctx, hostname)
 
 	if err != nil {
-		l.Error().Err(err).Msg("failed to resolve host")
+		l.Error("failed to resolve host", "error", err)
 		return record, err
 	}
 
 	if len(txtRecords) == 0 {
-		l.Info().Msg("no records found")
+		l.Info("no records found")
 		return record, nil
 	}
 
 	record, err = parseRecord(txtRecords[0])
 	if err != nil {
-		l.Error().Err(err).Msg("failed to parse record")
+		l.Error("failed to parse record", "error", err)
 		return record, err
 	}
 
@@ -252,7 +263,7 @@ func parseRecord(record string) (RR, error) {
 
 // detectLoop checks if the to host is already in the cache
 // if it is, it returns true, otherwise it returns false
-func (r *Resolver) detectLoop(l *log.Logger, hostname, to string) error {
+func (r *Resolver) detectLoop(l *slog.Logger, hostname, to string) error {
 	url, err := url.Parse(to)
 	if err != nil {
 		return err
@@ -292,7 +303,7 @@ func (r *Resolver) resolveTXT(ctx context.Context, hostname string) ([]string, e
 	return records, nil
 }
 
-func (r *Resolver) getCached(l *log.Logger, hostname string) (rr RR, ok bool) {
+func (r *Resolver) getCached(l *slog.Logger, hostname string) (rr RR, ok bool) {
 	cached, ok := r.cache.Get(hostname)
 
 	if !ok {
@@ -301,7 +312,7 @@ func (r *Resolver) getCached(l *log.Logger, hostname string) (rr RR, ok bool) {
 
 	// cast cached to RR
 	if val, ok := cached.(RR); !ok {
-		l.Error().Msg("invalid cached value, expected RR")
+		l.Error("invalid cached value, expected RR")
 		return rr, false
 	} else {
 		return val, true
@@ -335,4 +346,8 @@ func parseRefererPolicy(policy string) RefererPolicy {
 	default:
 		return DefaultRefererPolicy
 	}
+}
+
+func (r *Resolver) Logger() *slog.Logger {
+	return r.logger
 }
