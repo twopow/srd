@@ -1,9 +1,9 @@
-FROM golang:1.24-alpine AS deps
+FROM golang:1.25-alpine AS deps
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 COPY --from=deps /go/pkg/mod /go/pkg/mod
 WORKDIR /app
 COPY . .
