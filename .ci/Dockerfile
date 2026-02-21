@@ -7,7 +7,7 @@ FROM golang:1.24-alpine AS builder
 COPY --from=deps /go/pkg/mod /go/pkg/mod
 WORKDIR /app
 COPY . .
-RUN go build -o srd main.go
+RUN go build -o srd cmd/srd/main.go
 
 FROM scratch
 COPY --from=builder /app/srd .
