@@ -1,11 +1,12 @@
 module github.com/twopow/srd
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/alecthomas/kong v1.12.1
 	github.com/alecthomas/kong-yaml v0.2.0
 	github.com/google/uuid v1.6.0
+	github.com/twopow/glog v0.1.3
 )
 
 require (
