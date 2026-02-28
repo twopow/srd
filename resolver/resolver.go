@@ -21,11 +21,20 @@ const (
 	VERSION = "srd1"
 )
 
+var defaultNoHostBaseRedirect = "https://srd.sh"
+
 type ResolverContextKey string
 
 type ResolverConfig struct {
 	// RecordingPrefix is the DNS record to use, e.g. "_srd"
 	RecordPrefix string
+
+	// InHost is the hostname that should be used for the CNAME record, e.g. "in.srd.sh"
+	InHost string
+
+	// InspectorHost is the hostname to be used for the inspector route, e.g. "inspector.srd.sh"
+	// if this is empty, inspector will be disabled
+	InspectorHost string
 
 	// NoHostBaseRedirect is the URL to redirect to when
 	// resolving a request and we fail to find a record
@@ -43,6 +52,7 @@ type ResolverConfig struct {
 
 type ResolverProvider interface {
 	Resolve(ctx context.Context, hostname string) (RR, error)
+	Config() *ResolverConfig
 	Logger() *slog.Logger
 }
 
@@ -65,6 +75,7 @@ type RR struct {
 
 var RRNotFound = RR{NotFound: true, RefererPolicy: RefererPolicyNone, Code: http.StatusNotFound}
 var ErrLoop = errors.New("loop detected")
+var ErrHostIsIp = errors.New("host is ip")
 
 type RefererPolicy int
 
@@ -88,6 +99,10 @@ var DefaultRefererPolicy = RefererPolicyHost
 func New(cfg ResolverConfig) (ResolverProvider, error) {
 	if cfg.Logger == nil {
 		return nil, fmt.Errorf("slog logger is required")
+	}
+
+	if cfg.NoHostBaseRedirect == "" {
+		cfg.NoHostBaseRedirect = defaultNoHostBaseRedirect
 	}
 
 	c, err := cache.New(cache.CacheConfig{
@@ -117,10 +132,9 @@ func (r *Resolver) Resolve(ctx context.Context, hostname string) (record RR, err
 
 	l := r.logger.With("hostname", hostname)
 
-	// if hostname is ip, return the default redirect
-	if r.cfg.NoHostBaseRedirect != "" && util.IsIp(hostname) {
-		l.Info("no host base redirect")
-		return RR{To: r.cfg.NoHostBaseRedirect}, nil
+	if util.IsIp(hostname) {
+		l.Info("hostname is ip")
+		return RR{}, ErrHostIsIp
 	}
 
 	if cached, ok := r.getCached(l, hostname); ok {
@@ -350,4 +364,8 @@ func parseRefererPolicy(policy string) RefererPolicy {
 
 func (r *Resolver) Logger() *slog.Logger {
 	return r.logger
+}
+
+func (r *Resolver) Config() *ResolverConfig {
+	return &r.cfg
 }

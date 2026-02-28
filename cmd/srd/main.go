@@ -30,6 +30,8 @@ type ResolverConfig struct {
 	RecordPrefix       string `help:"Record prefix." default:"_srd"`
 	NoHostBaseRedirect string `help:"No host base redirect." default:"https://github.com/twopow/srd"`
 
+	InHost string `help:"Hostname to be used for the CNAME record." default:"in.srd.sh"`
+
 	TTL             time.Duration `help:"Cache TTL in seconds." default:"300s"`
 	CleanupInterval time.Duration `help:"Cache cleanup interval in seconds." default:"900s"`
 }
@@ -40,6 +42,7 @@ func (s *ServeCmd) Run(ctx *Context) error {
 	rp, err := resolver.New(resolver.ResolverConfig{
 		RecordPrefix:       s.Resolver.RecordPrefix,
 		NoHostBaseRedirect: s.Resolver.NoHostBaseRedirect,
+		InHost:             s.Resolver.InHost,
 		TTL:                s.Resolver.TTL,
 		CleanupInterval:    s.Resolver.CleanupInterval,
 		Logger:             glog.GetLogger(),

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 type MockResolver struct{}
@@ -83,6 +84,7 @@ var MockData = map[string]RR{
 }
 
 var MockErrorHost = "error.test"
+var MockLoopHost = "loop.test"
 
 func Mock() ResolverProvider {
 	return &MockResolver{}
@@ -91,6 +93,10 @@ func Mock() ResolverProvider {
 func (r *MockResolver) Resolve(ctx context.Context, hostname string) (RR, error) {
 	if hostname == MockErrorHost {
 		return RR{}, fmt.Errorf("error")
+	}
+
+	if hostname == MockLoopHost {
+		return RR{Hostname: hostname, To: "http://" + hostname, Code: 302}, ErrLoop
 	}
 
 	for _, rr := range MockData {
@@ -104,4 +110,14 @@ func (r *MockResolver) Resolve(ctx context.Context, hostname string) (RR, error)
 
 func (r *MockResolver) Logger() *slog.Logger {
 	return slog.Default()
+}
+
+func (r *MockResolver) Config() *ResolverConfig {
+	return &ResolverConfig{
+		InHost:             "in.test",
+		NoHostBaseRedirect: "https://github.com/twopow/srd",
+		RecordPrefix:       "_srd",
+		TTL:                time.Second * 300,
+		CleanupInterval:    time.Second * 900,
+	}
 }

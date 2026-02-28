@@ -27,20 +27,21 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 
 		ctx = context.WithValue(ctx, resolverP.ResolverContextKey("request_id"), rid)
 
+		if isInspectRequest(r, resolver.Config()) {
+			if err := HandleInspect(ctx, w, r, resolver); err != nil {
+				handleResolveError(w, r, resolver, fmt.Errorf("failed to inspect: %w", err))
+			}
+			return
+		}
+
+		if r.Host == "" || util.IsIp(r.Host) {
+			handleResolveError(w, r, resolver, resolverP.ErrHostIsIp)
+			return
+		}
+
 		value, err := resolver.Resolve(ctx, r.Host)
 		if err != nil {
-			if errors.Is(err, resolverP.ErrLoop) {
-				http.Error(w, "loop detected", http.StatusBadRequest)
-				return
-			}
-
-			// Context timeouts/cancellations are distinguishable:
-			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-				http.Error(w, "timeout", http.StatusInternalServerError)
-				return
-			}
-
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			handleResolveError(w, r, resolver, err)
 			return
 		}
 
@@ -59,7 +60,7 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 		to, err := constructTo(r, value)
 		if err != nil {
 			l.Error("failed to construct to", "error", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			handleResolveError(w, r, resolver, err)
 			return
 		}
 
@@ -75,6 +76,41 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 		dest := to.String()
 		http.Redirect(w, r, dest, value.Code)
 	}
+}
+
+func handleResolveError(w http.ResponseWriter, r *http.Request, resolver resolverP.ResolverProvider, err error) {
+	log := resolver.Logger().With("hostname", r.Host)
+	log.Error("handling resolve error", "error", err)
+
+	if errors.Is(err, resolverP.ErrLoop) {
+		http.Error(w, "loop detected", http.StatusBadRequest)
+		return
+	}
+
+	if errors.Is(err, resolverP.ErrHostIsIp) {
+		http.Redirect(w, r, resolver.Config().NoHostBaseRedirect, http.StatusFound)
+		return
+	}
+
+	// Context timeouts/cancellations are distinguishable:
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		http.Error(w, "timeout", http.StatusInternalServerError)
+		return
+	}
+
+	http.Error(w, "internal server error", http.StatusInternalServerError)
+}
+
+func isInspectRequest(r *http.Request, cfg *resolverP.ResolverConfig) bool {
+	if r.URL.Path != "/inspect" {
+		return false
+	}
+
+	if r.Host == "" || util.IsIp(r.Host) {
+		return true
+	}
+
+	return cfg.InHost != "" && r.Host == cfg.InHost
 }
 
 func constructTo(r *http.Request, value resolverP.RR) (*url.URL, error) {
