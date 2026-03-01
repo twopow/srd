@@ -21,9 +21,13 @@ type InspectResponse struct {
 }
 
 func HandleInspect(ctx context.Context, w http.ResponseWriter, r *http.Request, resolver resolverP.ResolverProvider) error {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Content-Type", "application/json")
+
 	host := r.URL.Query().Get("host")
 	if host == "" {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		return json.NewEncoder(w).Encode(InspectResponse{Error: "missing required query parameter: host"})
 	}
@@ -50,6 +54,5 @@ func HandleInspect(ctx context.Context, w http.ResponseWriter, r *http.Request, 
 		resp.RefererPolicy = rr.RefererPolicy.String()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(resp)
 }

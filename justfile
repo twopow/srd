@@ -15,3 +15,6 @@ run:
 simple-loop:
 	http get 127.0.0.1:9200 host:a.loop.test.srd.sh
 	http get 127.0.0.1:9200 host:b.loop.test.srd.sh
+
+simple-chain:
+	http -F --max-redirects 50 get 127.0.0.1:9200 host:chain.test.srd.sh
