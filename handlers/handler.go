@@ -80,10 +80,20 @@ func ResolveHandler(resolver resolverP.ResolverProvider) http.HandlerFunc {
 
 func handleResolveError(w http.ResponseWriter, r *http.Request, resolver resolverP.ResolverProvider, err error) {
 	log := resolver.Logger().With("hostname", r.Host)
-	log.Error("handling resolve error", "error", err)
 
 	if errors.Is(err, resolverP.ErrLoop) {
-		http.Error(w, "loop detected", http.StatusBadRequest)
+		toolboxHost := resolver.Config().ToolboxHost
+		msg := "loop detected"
+
+		if toolboxHost != "" {
+			msg = fmt.Sprintf(
+				"loop detected.\n\nInspect with toolbox: https://%s/inspect?r=%s",
+				toolboxHost,
+				url.QueryEscape(r.Host),
+			)
+		}
+
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -91,6 +101,8 @@ func handleResolveError(w http.ResponseWriter, r *http.Request, resolver resolve
 		http.Redirect(w, r, resolver.Config().NoHostBaseRedirect, http.StatusFound)
 		return
 	}
+
+	log.Error("resolve error", "error", err)
 
 	// Context timeouts/cancellations are distinguishable:
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {

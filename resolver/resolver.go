@@ -22,6 +22,7 @@ const (
 )
 
 var defaultNoHostBaseRedirect = "https://srd.sh"
+var defaultToolboxHost = "https://toolbox.srd.sh"
 
 type ResolverContextKey string
 
@@ -35,6 +36,9 @@ type ResolverConfig struct {
 	// InspectorHost is the hostname to be used for the inspector route, e.g. "inspector.srd.sh"
 	// if this is empty, inspector will be disabled
 	InspectorHost string
+
+	// ToolboxHost is the hostname to be used for the toolbox route, e.g. "toolbox.srd.sh"
+	ToolboxHost string
 
 	// NoHostBaseRedirect is the URL to redirect to when
 	// resolving a request and we fail to find a record
@@ -103,6 +107,10 @@ func New(cfg ResolverConfig) (ResolverProvider, error) {
 
 	if cfg.NoHostBaseRedirect == "" {
 		cfg.NoHostBaseRedirect = defaultNoHostBaseRedirect
+	}
+
+	if cfg.ToolboxHost == "" {
+		cfg.ToolboxHost = defaultToolboxHost
 	}
 
 	c, err := cache.New(cache.CacheConfig{
