@@ -31,7 +31,7 @@ type ResolverConfig struct {
 	NoHostBaseRedirect string `help:"No host base redirect." default:"https://github.com/twopow/srd"`
 
 	InHost      string `help:"Hostname to be used for the CNAME record." default:"in.srd.sh"`
-	ToolboxHost string `help:"Hostname to be used for the toolbox route." default:"toolbox.srd.sh"`
+	ToolboxHost string `help:"Hostname to be used for the toolbox route." default:"srd.sh"`
 
 	TTL             time.Duration `help:"Cache TTL in seconds." default:"300s"`
 	CleanupInterval time.Duration `help:"Cache cleanup interval in seconds." default:"900s"`

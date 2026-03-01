@@ -22,7 +22,7 @@ const (
 )
 
 var defaultNoHostBaseRedirect = "https://srd.sh"
-var defaultToolboxHost = "https://toolbox.srd.sh"
+var defaultToolboxHost = "https://srd.sh"
 
 type ResolverContextKey string
 
@@ -37,7 +37,7 @@ type ResolverConfig struct {
 	// if this is empty, inspector will be disabled
 	InspectorHost string
 
-	// ToolboxHost is the hostname to be used for the toolbox route, e.g. "toolbox.srd.sh"
+	// ToolboxHost is the hostname to be used for the toolbox route, e.g. "srd.sh"
 	ToolboxHost string
 
 	// NoHostBaseRedirect is the URL to redirect to when
