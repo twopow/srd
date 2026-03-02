@@ -271,7 +271,7 @@ If DNS lookup fails:
 
 1. Configure DNS A record:
    ```
-   example.com.   IN A   34.56.76.181
+   example.com.   IN A   34.123.249.80
    ```
 
 2. Configure SRD record:

@@ -33,7 +33,7 @@ Now requests to https://blog.example.com will redirect to https://newblog.exampl
 Note: root domains are supported in the same way. For example, to redirect example.com, configure:
 
 ```
-    example.com.   IN A     34.56.76.181
+    example.com.   IN A     34.123.249.80
     _srd.example.com.   IN TXT   "v=srd1; dest=https://hello.example.net"
 ```
 
@@ -77,14 +77,14 @@ Examples:
 
 ### Hosted for you
 
-SRD provides a hosted service for you to use, free of charge. You can use the hosted SRD by pointing your domain at the **SRD Service CNAME**: `in.srd.sh`, or the **SRD Service Static IPv4**: `34.56.76.181`.
+SRD provides a hosted service for you to use, free of charge. You can use the hosted SRD by pointing your domain at the **SRD Service CNAME**: `in.srd.sh`, or the **SRD Service Static IPv4**: `34.123.249.80`.
 
 Using the hosted SRD Service is as simple as configuring your records and the corresponding `_srd.<host>` TXT record. No accounts or control panel - DNS is the source of truth.
 
-| Record | Value          | Notes                                                             |
-|--------|----------------|-------------------------------------------------------------------|
-| CNAME  | `in.srd.sh`    | use for subdomains or root domains with CNAME Flattening support. |
-| A      | `34.56.76.181` | use for root domains.                                             |
+| Record | Value           | Notes                                                             |
+|--------|-----------------|-------------------------------------------------------------------|
+| CNAME  | `in.srd.sh`     | use for subdomains or root domains with CNAME Flattening support. |
+| A      | `34.123.249.80` | use for root domains.                                             |
 
 ```
 blog.example.com.        IN CNAME   in.srd.sh
