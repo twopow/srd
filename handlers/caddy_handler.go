@@ -10,6 +10,7 @@ import (
 
 func CaddyHelperHandler(resv resolver.ResolverProvider) http.HandlerFunc {
 	log := resv.Logger()
+	inHost := resv.Config().InHost
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("domain")
@@ -24,6 +25,13 @@ func CaddyHelperHandler(resv resolver.ResolverProvider) http.HandlerFunc {
 		if util.IsIp(domain) {
 			l.Debug("caddy domain check: ip address not allowed")
 			http.Error(w, "ip address not allowed", http.StatusBadRequest)
+			return
+		}
+
+		if inHost != "" && domain == inHost {
+			l.Debug("caddy domain check: is in host")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
 			return
 		}
 
