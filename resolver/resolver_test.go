@@ -101,6 +101,18 @@ func TestParseRecord_QuoteTriming(t *testing.T) {
 	})
 }
 
+func TestParseRecord_DestWithQueryParams(t *testing.T) {
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com?query=param",
+		Want:   RR{Version: "srd1", To: "https://example.com?query=param", NotFound: false, RefererPolicy: DefaultRefererPolicy, Code: http.StatusFound},
+	})
+
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com?a=1&b=2; code=301",
+		Want:   RR{Version: "srd1", To: "https://example.com?a=1&b=2", NotFound: false, RefererPolicy: DefaultRefererPolicy, Code: http.StatusMovedPermanently},
+	})
+}
+
 func TestParseRecord_ExtraFields(t *testing.T) {
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; extra=field; extra2=field2",
@@ -132,6 +144,16 @@ func TestParseRecord_RefererPolicy(t *testing.T) {
 
 	doParseRecordTest(t, TestData{
 		Record: "v=srd1; dest=https://example.com; referer=full",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, RefererPolicy: RefererPolicyFull, Code: http.StatusFound},
+	})
+
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; referrer=host",
+		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, RefererPolicy: RefererPolicyHost, Code: http.StatusFound},
+	})
+
+	doParseRecordTest(t, TestData{
+		Record: "v=srd1; dest=https://example.com; referrer=full",
 		Want:   RR{Version: "srd1", To: "https://example.com", NotFound: false, RefererPolicy: RefererPolicyFull, Code: http.StatusFound},
 	})
 }

@@ -226,7 +226,6 @@ func parseRecord(record string) (RR, error) {
 
 	// remove bounding quotes if they exist
 	record = strings.Trim(record, "\"")
-
 	parts := strings.Split(record, ";")
 
 	for _, part := range parts {
@@ -235,7 +234,7 @@ func parseRecord(record string) (RR, error) {
 			continue
 		}
 
-		segments := strings.Split(part, "=")
+		segments := strings.SplitN(part, "=", 2)
 		if len(segments) == 0 {
 			continue // Skip malformed parts
 		}
@@ -258,9 +257,7 @@ func parseRecord(record string) (RR, error) {
 			if value == "preserve" {
 				rr.PreserveRoute = true
 			}
-		case "referer":
-			rr.RefererPolicy = parseRefererPolicy(value)
-		case "referrer":
+		case "referer", "referrer":
 			rr.RefererPolicy = parseRefererPolicy(value)
 		}
 	}
