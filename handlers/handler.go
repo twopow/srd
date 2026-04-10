@@ -93,7 +93,7 @@ func handleResolveError(w http.ResponseWriter, r *http.Request, resolver resolve
 			)
 		}
 
-		http.Error(w, msg, http.StatusBadRequest)
+		http.Error(w, msg, http.StatusLoopDetected)
 		return
 	}
 
